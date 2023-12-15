@@ -1,7 +1,5 @@
 from django.db import models
 
-
-
 class Driver(models.Model):
     driver_id = models.AutoField(primary_key = True)
     driver_status = models.CharField(max_length = 12, default='default_value_here')
