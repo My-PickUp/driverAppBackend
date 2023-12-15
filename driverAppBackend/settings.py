@@ -37,6 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'driverService.apps.DriverserviceConfig',
+    'driverAppBackend',
+    'rest_framework',
+    'corsheaders',
+
 ]
 
 MIDDLEWARE = [
@@ -54,7 +59,8 @@ ROOT_URLCONF = 'driverAppBackend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates']
+        ,
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -69,14 +75,41 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'driverAppBackend.wsgi.application'
 
+CORS_ALLOWED_ORIGINS = [
+
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'tess',  # Your database name
+        'USER': 'chityanjs',  # Your username
+        'PASSWORD': 'Nfqyolj4Swz1',  # Your password
+        'HOST': 'ep-plain-wildflower-79539467.ap-southeast-1.aws.neon.tech',  # Your host
+        'PORT': '5432',  # Your port (if not default)
+        'OPTIONS': {
+            'sslmode': 'require',  # To enable SSL
+        },
     }
 }
 
