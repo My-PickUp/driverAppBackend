@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from driverService.models import Driver, UserInfo
 from driverService.serializers import DriverSerializer
@@ -12,8 +13,8 @@ def awake(request):
     return Response(response_data, status=200)
 @api_view(['GET'])
 @ratelimit(key='ip', rate='5/m', block=True)
-def get_drivers(request):
-    drivers = Driver.objects.all()
+def get_drivers(request, driver_id):
+    drivers = get_object_or_404(Driver, driver_id= driver_id)
     serializer = DriverSerializer(drivers, many=True)
     return Response(serializer.data)
 
