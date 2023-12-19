@@ -13,8 +13,8 @@ def awake(request):
     return Response(response_data, status=200)
 @api_view(['GET'])
 @ratelimit(key='ip', rate='5/m', block=True)
-def get_drivers(request, driver_id):
-    drivers = get_object_or_404(Driver, driver_id= driver_id)
+def get_drivers(request, phone):
+    drivers = get_object_or_404(Driver, phone= phone)
     serializer = DriverSerializer(drivers)
     return Response(serializer.data)
 
