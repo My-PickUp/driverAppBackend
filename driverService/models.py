@@ -17,6 +17,16 @@ class Driver(models.Model):
 class UserInfo(models.Model):
     phone = models.CharField(max_length=12)
 
+class VerificationCode(models.Model):
+    phone_number = models.CharField(max_length=12, null=False)
+    code = models.CharField(max_length=6, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
+
 
 
 
