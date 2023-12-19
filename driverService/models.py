@@ -17,7 +17,7 @@ class Driver(models.Model):
 class UserInfo(models.Model):
     phone = models.CharField(max_length=12)
 
-class VerificationCode(models.Model):
+class DriverVerificationCode(models.Model):
     phone_number = models.CharField(max_length=12, null=False)
     code = models.CharField(max_length=6, null=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from driverService.models import Driver, UserInfo, VerificationCode
+from driverService.models import Driver, UserInfo, DriverVerificationCode
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,9 +13,9 @@ class DriverSerializer(serializers.ModelSerializer):
         model = Driver
         fields = '__all__'
 
-class VerificationCodeSerializer(serializers.ModelSerializer):
+class DriverVerificationCodeSerializer(serializers.ModelSerializer):
     class Meta:
-        model = VerificationCode
+        model = DriverVerificationCode
         fields = '__all__'
 
 
