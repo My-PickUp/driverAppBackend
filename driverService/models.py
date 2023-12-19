@@ -10,6 +10,8 @@ class Driver(models.Model):
     phone = models.CharField(max_length=12)
     vehicle_number = models.CharField(max_length=20)
     vehicle_model = models.CharField(max_length=255)
+    track_url = models.URLField(null=True, blank=True)
+
 
 
 class UserInfo(models.Model):
