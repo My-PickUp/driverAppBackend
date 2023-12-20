@@ -2,6 +2,11 @@ import random
 from venv import logger
 
 import jwt
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import JsonResponse
+from jose import jwt, JWTError
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -88,6 +93,47 @@ def verify_otp(request):
                               ,settings.SECRET_KEY, algorithm='HS256')
 
     return Response({'access_token': access_token}, status=status.HTTP_200_OK)
+
+
+def is_authenticated(token, phone_number):
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        return payload.get('phone') == phone_number
+    except JWTError:
+        return False
+
+@api_view(['GET'])
+def get_driver_details(request):
+    phone_number = request.headers.get('phone')
+    token = request.headers.get('Authorization').split(' ')[1]
+
+
+    if not is_authenticated(token, phone_number):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    try:
+        driver = Driver.objects.get(phone=phone_number)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Driver not found'}, status=404)
+
+    driver_details = {
+        'driver_id': driver.driver_id,
+        'driver_status': driver.driver_status,
+        'current_lat': driver.current_lat,
+        'current_lng': driver.current_lng,
+        'name': driver.name,
+        'phone': driver.phone,
+        'vehicle_number': driver.vehicle_number,
+        'vehicle_model': driver.vehicle_model,
+        'track_url': driver.track_url,
+    }
+
+    return JsonResponse(driver_details, status=200)
+
+
+
+
+
 
 
 
