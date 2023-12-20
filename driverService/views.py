@@ -4,7 +4,6 @@ from venv import logger
 import jwt
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
-from jose import JWTError
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET
 from rest_framework.decorators import api_view
