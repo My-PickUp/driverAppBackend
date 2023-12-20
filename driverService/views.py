@@ -119,8 +119,6 @@ def get_driver_details(request):
     driver_details = {
         'driver_id': driver.driver_id,
         'driver_status': driver.driver_status,
-        'current_lat': driver.current_lat,
-        'current_lng': driver.current_lng,
         'name': driver.name,
         'phone': driver.phone,
         'vehicle_number': driver.vehicle_number,
