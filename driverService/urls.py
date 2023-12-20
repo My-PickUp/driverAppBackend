@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from driverService import views
 
 urlpatterns = [
     path('fetchDrivers/<str:phone>/', views.get_drivers, name='get-drivers'),
