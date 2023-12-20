@@ -78,7 +78,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'driverAppBackend.wsgi.application'
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:",
+    "http://localhost:3069",
 ]
 
 CORS_ALLOW_METHODS = [
