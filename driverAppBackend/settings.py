@@ -79,6 +79,7 @@ WSGI_APPLICATION = 'driverAppBackend.wsgi.application'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3069",
+    "https://my-pickup-techyhk.vercel.app",
 ]
 
 CORS_ALLOW_METHODS = [
