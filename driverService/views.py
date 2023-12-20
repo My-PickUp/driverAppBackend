@@ -46,6 +46,7 @@ def create_driver(request):
         driver_instance.assigned_users.set(assigned_users)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@ratelimit(key='ip', rate='5/m', block=True)
 @api_view(['POST'])
 def generate_otp(request):
     phone_number = request.data.get('phone')
@@ -99,7 +100,7 @@ def is_authenticated(token):
     except Exception as e:
         return False
 
-
+@ratelimit(key='ip', rate='5/m', block=True)
 @api_view(['GET'])
 def get_driver_details(request):
 
