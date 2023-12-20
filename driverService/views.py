@@ -92,24 +92,25 @@ def verify_otp(request):
     return Response({'access_token': access_token}, status=status.HTTP_200_OK)
 
 
-def is_authenticated(token, phone_number):
+def is_authenticated(token):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-        return payload.get('phone') == phone_number
+        return True
     except Exception as e:
         return False
 
 
 @api_view(['GET'])
 def get_driver_details(request):
-    phone_number = request.headers.get('phone')
+
     token = request.headers.get('Authorization').split(' ')[1]
 
 
-    if not is_authenticated(token, phone_number):
+    if not is_authenticated(token):
         return JsonResponse({'error': 'Unauthorized'}, status=401)
 
     try:
+        phone_number = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256']).get('phone')
         driver = Driver.objects.get(phone=phone_number)
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Driver not found'}, status=404)
