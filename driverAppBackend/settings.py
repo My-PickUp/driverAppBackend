@@ -26,7 +26,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 10 * 24 * 60
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['driverappbackend.onrender.com', '127.0.0.1']
+ALLOWED_HOSTS = ['driverappbackend.onrender.com', '127.0.0.1', '*']
 
 
 # Application definition
