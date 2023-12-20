@@ -98,8 +98,9 @@ def is_authenticated(token, phone_number):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         return payload.get('phone') == phone_number
-    except JWTError:
+    except Exception as e:
         return False
+
 
 @api_view(['GET'])
 def get_driver_details(request):
