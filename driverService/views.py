@@ -82,9 +82,14 @@ def verify_otp(request):
 
     if not verification_code:
         return Response({'error':'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    expiration_time = verification_code.created_at + timedelta(minutes=settings.OTP_EXPIRATION_MINUTES)
+    if timezone.now() > expiration_time:
+        verification_code.status = 'expired'
+        verification_code.save()
+
     verification_code.status = 'expired'
     verification_code.save()
-
 
     access_token_expires = timezone.now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = jwt.encode({'phone':phone_number, 'exp':access_token_expires}
