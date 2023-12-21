@@ -7,6 +7,7 @@ urlpatterns = [
     path('generateOtp/', views.generate_otp, name='generate-otp'),
     path('verifyOtp/', views.verify_otp, name='verify-otp'),
     path('getDriverDetails/', views.get_driver_details, name='get-driver-details'),
+    path('updateCustomersForDriver/<int:driver_id>/', views.update_customers_for_driver, name='update-customers-for-drivers'),
     #path('deleteExpiredOtp/<str:phone>/', views.delete_expired_otp, name='delete-expired-otp'),
     path('awake/', views.awake, name='awake'),
 ]

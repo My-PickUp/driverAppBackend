@@ -83,11 +83,12 @@ def verify_otp(request):
     if not verification_code:
         return Response({'error':'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    expiration_time = verification_code.created_at + timedelta(minutes=settings.OTP_EXPIRATION_MINUTES)
+    expiration_time = verification_code.created_at + timedelta(minutes=settings.OTP_EXPIRATION_SECONDS)
     if timezone.now() > expiration_time:
         verification_code.status = 'expired'
         verification_code.save()
         return Response({'error': 'OTP has expired'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
     verification_code.status = 'expired'
     verification_code.save()
@@ -132,6 +133,32 @@ def get_driver_details(request):
     }
 
     return JsonResponse(driver_details, status=200)
+@api_view(['PATCH'])
+def update_customers_for_driver(request, driver_id):
+    try:
+        driver = Driver.objects.get(pk=driver_id)
+    except Driver.DoesNotExist:
+        return Response({'error': 'Driver not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    data = request.data
+    assigned_user_phones = data.get('assigned_users', [])
+
+    assigned_users = []
+    for phone in assigned_user_phones:
+        user, created = UserInfo.objects.get_or_create(phone=phone)
+        assigned_users.append(user)
+
+    assigned_users_list = list(assigned_users)
+
+
+    driver.assigned_users.set(assigned_users_list)
+
+    driver.save()
+
+    serializer = DriverSerializer(driver)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 
 
 
