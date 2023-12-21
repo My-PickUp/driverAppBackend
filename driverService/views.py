@@ -87,6 +87,7 @@ def verify_otp(request):
     if timezone.now() > expiration_time:
         verification_code.status = 'expired'
         verification_code.save()
+        return Response({'error': 'OTP has expired'}, status=status.HTTP_401_UNAUTHORIZED)
 
     verification_code.status = 'expired'
     verification_code.save()
