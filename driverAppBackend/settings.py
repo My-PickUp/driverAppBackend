@@ -22,7 +22,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-^@jys-4oyrqg5tauy2b+lxo$8v4*w-0@xk()ho*@5os3=!*l3%'
 ACCESS_TOKEN_EXPIRE_MINUTES = 10 * 24 * 60
-OTP_EXPIRATION_SECONDS = 60
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

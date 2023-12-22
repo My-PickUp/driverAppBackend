@@ -61,6 +61,16 @@ def generate_otp(request):
         created_at=timezone.now(),
         status='active'
     )
+    expiration_time_threshold = timezone.now() - timedelta(minutes=1)
+    print(f"Current time: {timezone.now()}, Expiration threshold: {expiration_time_threshold}")
+    old_verification_codes = DriverVerificationCode.objects.filter(
+        phone_number=phone_number,
+        created_at__lte=expiration_time_threshold,
+        status='active'
+    )
+
+    print(f"Old verification codes: {old_verification_codes}")
+    old_verification_codes.update(status='expired')
 
     serializer = DriverVerificationCodeSerializer(verification_code)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -82,13 +92,6 @@ def verify_otp(request):
 
     if not verification_code:
         return Response({'error':'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    expiration_time = verification_code.created_at + timedelta(minutes=settings.OTP_EXPIRATION_SECONDS)
-    if timezone.now() > expiration_time:
-        verification_code.status = 'expired'
-        verification_code.save()
-        return Response({'error': 'OTP has expired'}, status=status.HTTP_401_UNAUTHORIZED)
-
 
     verification_code.status = 'expired'
     verification_code.save()
@@ -157,7 +160,6 @@ def update_customers_for_driver(request, driver_id):
 
     serializer = DriverSerializer(driver)
     return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 
 
