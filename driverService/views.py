@@ -2,6 +2,8 @@ import random
 from venv import logger
 
 import jwt
+from django.db import connections
+from django.db.utils import OperationalError
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
@@ -160,8 +162,47 @@ def update_customers_for_driver(request, driver_id):
 
     serializer = DriverSerializer(driver)
     return Response(serializer.data, status=status.HTTP_200_OK)
+@api_view(['GET'])
+def get_upcoming_rides(request, driver_id):
+    try:
+        with connections['default'].cursor() as cursor:
+            query = """
+            SELECT
+    driver.driver_id,
+    users_ride_info.user_id,
+    users.name,
+    users_ride_info.pickup_address,
+    users_ride_info.drop_address,
+    users_ride_info.ride_date_time,
+    users_ride_info.ride_status
+FROM
+    "driverService_driver" AS "driver"
+JOIN
+    "driverService_driver_assigned_users" AS "driver_assigned_users" ON driver.driver_id = driver_assigned_users.driver_id
+JOIN
+    "driverService_userinfo" AS "userinfo" ON driver_assigned_users.userinfo_id = userinfo.id
+JOIN
+    users AS "users" ON users.phone_number = userinfo.phone
+JOIN
+    users_rides_detail AS "users_ride_info" ON users_ride_info.user_id = users.id
+where users_ride_info.ride_status = 'Upcoming' and driver.driver_id = %s
+ORDER BY
+    users_ride_info.ride_date_time;
 
 
+"""
+            cursor.execute(query, [driver_id])
+            rows = cursor.fetchall()
+
+            #Convert rows to a list of dictionaries.
+            result = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in rows
+            ]
+            #Returns result as JSON
+            return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
+    except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})
 
 
 
