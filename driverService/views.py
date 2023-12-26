@@ -163,46 +163,54 @@ def update_customers_for_driver(request, driver_id):
     serializer = DriverSerializer(driver)
     return Response(serializer.data, status=status.HTTP_200_OK)
 @api_view(['GET'])
-def get_upcoming_rides(request, driver_id):
+def get_customer_details(request):
     try:
         with connections['default'].cursor() as cursor:
             query = """
             SELECT
-    driver.driver_id,
-    users_ride_info.user_id,
-    users.name,
-    users_ride_info.pickup_address,
-    users_ride_info.drop_address,
-    users_ride_info.ride_date_time,
-    users_ride_info.ride_status
+    CASE EXTRACT(DOW FROM users_rides_detail.ride_date_time)
+        WHEN 0 THEN 'Sunday'
+        WHEN 1 THEN 'Monday'
+        WHEN 2 THEN 'Tuesday'
+        WHEN 3 THEN 'Wednesday'
+        WHEN 4 THEN 'Thursday'
+        WHEN 5 THEN 'Friday'
+        WHEN 6 THEN 'Saturday'
+        ELSE 'Unknown Day'
+    END AS day_of_week,
+    users.id AS customer_id,
+    users.name AS customer_name,
+    users_rides_detail.pickup_address_type,
+    users_rides_detail.pickup_address,
+    users_rides_detail.drop_address_type,
+    users_rides_detail.drop_address,
+    users_rides_detail.ride_status,
+    users_rides_detail.ride_date_time
 FROM
-    "driverService_driver" AS "driver"
+    users
 JOIN
-    "driverService_driver_assigned_users" AS "driver_assigned_users" ON driver.driver_id = driver_assigned_users.driver_id
+    users_subscription ON users.id = users_subscription.user_id
 JOIN
-    "driverService_userinfo" AS "userinfo" ON driver_assigned_users.userinfo_id = userinfo.id
-JOIN
-    users AS "users" ON users.phone_number = userinfo.phone
-JOIN
-    users_rides_detail AS "users_ride_info" ON users_ride_info.user_id = users.id
-where users_ride_info.ride_status = 'Upcoming' and driver.driver_id = %s
+    users_rides_detail ON users_rides_detail.user_id = users.id
+WHERE
+    users_rides_detail.ride_status = 'Upcoming'
 ORDER BY
-    users_ride_info.ride_date_time;
+    users_rides_detail.ride_date_time;
 
-
-"""
-            cursor.execute(query, [driver_id])
+            """
+            cursor.execute(query)
             rows = cursor.fetchall()
 
-            #Convert rows to a list of dictionaries.
+            # Convert rows to a list of dictionaries.
             result = [
                 dict(zip([column[0] for column in cursor.description], row))
                 for row in rows
             ]
-            #Returns result as JSON
+            # Returns result as JSON
             return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
+
 
 
 
