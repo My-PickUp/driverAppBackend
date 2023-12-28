@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from driverService.models import Driver, UserInfo, DriverVerificationCode
+from driverService.models import Driver, Customer, DriverVerificationCode
 from driverService.serializers import DriverSerializer, DriverVerificationCodeSerializer
 from django_ratelimit.decorators import ratelimit
 from datetime import datetime, timedelta
@@ -33,19 +33,14 @@ def get_drivers(request, phone):
 @api_view(['POST'])
 def create_driver(request):
     data = request.data
-    assigned_user_phones = data.pop('assigned_users', [])
     existing_driver = Driver.objects.filter(phone=data['phone']).first()
     if existing_driver:
         return Response({'error': 'Driver with this phone number already exists.'}, status=status.HTTP_400_BAD_REQUEST)
-    assigned_users = []
-    for phone in assigned_user_phones:
-        user, created = UserInfo.objects.get_or_create(phone=phone)
-        assigned_users.append(user)
+
     serializer = DriverSerializer(data=data)
 
     if serializer.is_valid():
-        driver_instance = serializer.save()
-        driver_instance.assigned_users.set(assigned_users)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -138,30 +133,7 @@ def get_driver_details(request):
     }
 
     return JsonResponse(driver_details, status=200)
-@api_view(['PATCH'])
-def update_customers_for_driver(request, driver_id):
-    try:
-        driver = Driver.objects.get(pk=driver_id)
-    except Driver.DoesNotExist:
-        return Response({'error': 'Driver not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    data = request.data
-    assigned_user_phones = data.get('assigned_users', [])
-
-    assigned_users = []
-    for phone in assigned_user_phones:
-        user, created = UserInfo.objects.get_or_create(phone=phone)
-        assigned_users.append(user)
-
-    assigned_users_list = list(assigned_users)
-
-
-    driver.assigned_users.set(assigned_users_list)
-
-    driver.save()
-
-    serializer = DriverSerializer(driver)
-    return Response(serializer.data, status=status.HTTP_200_OK)
 @api_view(['GET'])
 def get_customer_details(request):
     try:

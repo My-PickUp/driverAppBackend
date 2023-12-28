@@ -1,14 +1,12 @@
 from rest_framework import serializers
-from driverService.models import Driver, UserInfo, DriverVerificationCode
+from driverService.models import Driver, Customer, DriverVerificationCode
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserInfo
-        fields = ['phone']
+        model = Customer
+        fields = '__all__'
 
 class DriverSerializer(serializers.ModelSerializer):
-    assigned_users = UserSerializer(many=True, read_only=True)
-
     class Meta:
         model = Driver
         fields = '__all__'
