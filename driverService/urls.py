@@ -8,5 +8,6 @@ urlpatterns = [
     path('verifyOtp/', views.verify_otp, name='verify-otp'),
     path('getDriverDetails/', views.get_driver_details, name='get-driver-details'),
     path('getCustomerDetails/',views.get_customer_details, name='get-upcoming-rides'),
+    path('rideDetailsUpload/', views.form_upload_response, name='ride-details-upload'),
     path('awake/', views.awake, name='awake'),
 ]

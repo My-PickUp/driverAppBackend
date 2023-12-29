@@ -1,22 +1,27 @@
+import csv
 import random
+from rest_framework.parsers import MultiPartParser
 from venv import logger
+from django.views.decorators.csrf import csrf_exempt
+from io import StringIO
 
 import jwt
 from django.db import connections
+from rest_framework.views import APIView
 from django.db.utils import OperationalError
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from driverService.models import Driver, Customer, DriverVerificationCode
-from driverService.serializers import DriverSerializer, DriverVerificationCodeSerializer
+from driverService.models import Driver, Customer, DriverVerificationCode, DriverRide, Copassenger
+from driverService.serializers import DriverSerializer, DriverVerificationCodeSerializer, DriverRideSerializer, CustomerSerializer, CopassengerSerializer
 from django_ratelimit.decorators import ratelimit
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
-from driverService.serializers import UserSerializer
+from driverService.serializers import CustomerSerializer
 
 @api_view(['GET'])
 def awake(request):
@@ -182,8 +187,74 @@ ORDER BY
             return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
+@api_view(['POST'])
+def form_upload_response(request):
+    if 'csv_file' not in request.FILES:
+        return Response({"error": "CSV file is missing"}, status=status.HTTP_400_BAD_REQUEST)
+
+    csv_file = request.FILES['csv_file'].read().decode('utf-8').splitlines()
+    reader = csv.DictReader(csv_file)
+
+    ride_details = []
+    for row in reader:
+        ride_date_time = row.get('ride_date_time', '')
+        driver_id = row.get('driver', '')
+        ride_type = row.get('ride_type', '')
+        customer_id = row.get('customer_id', '')
+        drop_priority = int(row.get('drop_priority', '')) if row.get('drop_priority', '') else None
+        co_passenger = row.get('co_passenger', '') or None
 
 
+
+        ride_details.append({
+            "ride_date_time": ride_date_time,
+            "driver_id": driver_id,
+            "ride_type": ride_type,
+            "customers": [
+                {
+                    "customer_id": customer_id,
+                    "drop_priority": drop_priority,
+                    "co_passenger": co_passenger
+                }
+            ]
+        })
+
+    response_data = {
+        "ride_details": ride_details
+    }
+
+    for ride_detail in ride_details:
+        driver_id = ride_detail['driver_id']
+        ride_type = ride_detail['ride_type']
+        ride_date_time = ride_detail['ride_date_time']
+
+        driver, created = Driver.objects.get_or_create(driver_id=driver_id)
+
+        ride, created = DriverRide.objects.get_or_create(
+            ride_type=ride_type,
+            ride_date_time=ride_date_time,
+            driver=driver
+        )
+
+        customer_id = ride_detail['customers'][0]['customer_id']
+        drop_priority = ride_detail['customers'][0]['drop_priority']
+        co_passenger = ride_detail['customers'][0]['co_passenger']
+
+        customer, created = Customer.objects.get_or_create(
+            customer_id=customer_id,
+            driver=driver,
+        )
+
+        if created or (drop_priority is not None and customer.drop_priority is None):
+            customer.drop_priority = drop_priority
+            customer.save()
+
+        if co_passenger:
+            co_passenger, created = Copassenger.objects.get_or_create(
+                co_passenger=customer,
+                ride=ride
+            )
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 
