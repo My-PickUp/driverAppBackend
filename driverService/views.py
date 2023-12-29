@@ -1,5 +1,7 @@
 import csv
 import random
+
+from django.utils.timezone import make_aware
 from rest_framework.parsers import MultiPartParser
 from venv import logger
 from django.views.decorators.csrf import csrf_exempt
@@ -204,8 +206,6 @@ def form_upload_response(request):
         drop_priority = int(row.get('drop_priority', '')) if row.get('drop_priority', '') else None
         co_passenger = row.get('co_passenger', '') or None
 
-
-
         ride_details.append({
             "ride_date_time": ride_date_time,
             "driver_id": driver_id,
@@ -226,7 +226,7 @@ def form_upload_response(request):
     for ride_detail in ride_details:
         driver_id = ride_detail['driver_id']
         ride_type = ride_detail['ride_type']
-        ride_date_time = ride_detail['ride_date_time']
+        ride_date_time = make_aware(datetime.strptime(ride_detail['ride_date_time'], "%Y-%m-%d %H:%M:%S"))
 
         driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
@@ -254,7 +254,7 @@ def form_upload_response(request):
                 co_passenger=customer,
                 ride=ride
             )
-    return Response(response_data, status=status.HTTP_200_OK)
+    return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 
