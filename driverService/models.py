@@ -1,7 +1,7 @@
 from django.db import models
 
 class Driver(models.Model):
-    driver_id = models.AutoField(primary_key = True)
+    driver_id = models.IntegerField(primary_key = True)
     driver_status = models.CharField(max_length = 12, default='default_value_here')
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=12)
@@ -26,7 +26,7 @@ class DriverRide(models.Model):
     ride_type = models.CharField(max_length=20, choices=[("Sharing", "Sharing"), ("Private", "Private")])
 
 class Customer(models.Model):
-    customer_id = models.AutoField(primary_key=True)
+    customer_id = models.IntegerField(primary_key=True)
     phone = models.CharField(max_length=12, blank=True, null=True)
     drop_priority = models.IntegerField(null=True, blank=True)
     driver = models.ForeignKey(Driver,to_field='driver_id', on_delete=models.CASCADE)
