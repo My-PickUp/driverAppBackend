@@ -222,6 +222,7 @@ def form_upload_response(request):
     response_data = {
         "ride_details": ride_details
     }
+    print(response_data)
 
     for ride_detail in ride_details:
         driver_id = ride_detail['driver_id']
