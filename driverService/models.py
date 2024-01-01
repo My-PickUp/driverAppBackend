@@ -26,13 +26,15 @@ class DriverRide(models.Model):
     ride_type = models.CharField(max_length=20, choices=[("Sharing", "Sharing"), ("Private", "Private")])
 
 class Customer(models.Model):
-    customer_id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
+    customer_id = models.IntegerField()
     phone = models.CharField(max_length=12, blank=True, null=True)
     drop_priority = models.IntegerField(null=True, blank=True)
     driver = models.ForeignKey(Driver,to_field='driver_id', on_delete=models.CASCADE)
+    ride_date_time = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
 class Copassenger(models.Model):
-    co_passenger = models.ForeignKey(Customer, to_field='customer_id', on_delete=models.CASCADE)
+    co_passenger = models.ForeignKey(Customer, to_field='id', on_delete=models.CASCADE)
     ride = models.ForeignKey(DriverRide, to_field='ride_id', on_delete=models.CASCADE)
 
 

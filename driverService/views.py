@@ -244,6 +244,7 @@ def form_upload_response(request):
         customer, created = Customer.objects.get_or_create(
             customer_id=customer_id,
             driver=driver,
+            ride_date_time=ride_date_time
         )
 
         if created or (drop_priority is not None and customer.drop_priority is None):
