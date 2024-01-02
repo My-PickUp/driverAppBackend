@@ -6,7 +6,7 @@ from django.db import transaction
 import jwt
 from django.db import connections
 from rest_framework.views import APIView
-from django.db.utils import OperationalError
+from django.db.utils import OperationalError, IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, parser_classes
@@ -235,26 +235,41 @@ def form_upload_response(request):
             driver=driver
         )
 
-
         customer_id = ride_detail['customers'][0]['customer_id']
         drop_priority = ride_detail['customers'][0]['drop_priority']
         co_passenger = ride_detail['customers'][0]['co_passenger']
 
-        customer, created = Customer.objects.get_or_create(
+        customer_exists = Customer.objects.filter(
             customer_id=customer_id,
             driver=driver,
             ride_date_time=ride_date_time
-        )
+        ).exists()
 
-        if created or (drop_priority is not None and customer.drop_priority is None):
-            customer.drop_priority = drop_priority
-            customer.save()
 
-        if co_passenger:
-            co_passenger, created = Copassenger.objects.get_or_create(
-                co_passenger=customer,
-                ride=ride
+        copassenger_exists = Copassenger.objects.filter(
+            co_passenger__customer_id=customer_id,
+            ride=ride
+        ).exists()
+
+        if customer_exists or copassenger_exists:
+            print("The records already exists in the system")
+        else:
+            customer, created = Customer.objects.get_or_create(
+                customer_id=customer_id,
+                driver=driver,
+                ride_date_time=ride_date_time
             )
+
+            if created or (drop_priority is not None and customer.drop_priority is None):
+                customer.drop_priority = drop_priority
+                customer.save()
+
+                if co_passenger:
+                    co_passenger, created = Copassenger.objects.get_or_create(
+                        co_passenger=customer,
+                        ride=ride
+                    )
+
     return Response(response_data, status=status.HTTP_201_CREATED)
 
 
