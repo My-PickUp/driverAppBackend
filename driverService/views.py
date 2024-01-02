@@ -2,11 +2,7 @@ import csv
 import random
 
 from django.utils.timezone import make_aware
-from rest_framework.parsers import MultiPartParser
-from venv import logger
-from django.views.decorators.csrf import csrf_exempt
-from io import StringIO
-
+from django.db import transaction
 import jwt
 from django.db import connections
 from rest_framework.views import APIView
@@ -229,6 +225,8 @@ def form_upload_response(request):
         ride_type = ride_detail['ride_type']
         ride_date_time = make_aware(datetime.strptime(ride_detail['ride_date_time'], "%Y-%m-%d %H:%M:%S"))
 
+        print(f"Processing ride_detail: {ride_detail}")
+
         driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
         ride, created = DriverRide.objects.get_or_create(
@@ -236,6 +234,7 @@ def form_upload_response(request):
             ride_date_time=ride_date_time,
             driver=driver
         )
+
 
         customer_id = ride_detail['customers'][0]['customer_id']
         drop_priority = ride_detail['customers'][0]['drop_priority']

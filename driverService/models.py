@@ -31,7 +31,7 @@ class Customer(models.Model):
     phone = models.CharField(max_length=12, blank=True, null=True)
     drop_priority = models.IntegerField(null=True, blank=True)
     driver = models.ForeignKey(Driver,to_field='driver_id', on_delete=models.CASCADE)
-    ride_date_time = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    ride_date_time = models.DateTimeField(auto_now_add=False, null=True, blank=True)
 
 class Copassenger(models.Model):
     co_passenger = models.ForeignKey(Customer, to_field='id', on_delete=models.CASCADE)
