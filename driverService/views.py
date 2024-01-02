@@ -142,7 +142,7 @@ def get_customer_details(request):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-            SELECT
+            SELECT DISTINCT ON (users_rides_detail.ride_date_time)
     CASE EXTRACT(DOW FROM users_rides_detail.ride_date_time)
         WHEN 0 THEN 'Sunday'
         WHEN 1 THEN 'Monday'
