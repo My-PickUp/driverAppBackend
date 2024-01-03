@@ -271,6 +271,74 @@ def form_upload_response(request):
                     )
 
     return Response(response_data, status=status.HTTP_201_CREATED)
+@api_view(['GET'])
+def get_upcoming_private_rides(request, driver_id):
+    try:
+        driver = Driver.objects.get(driver_id=driver_id)
+    except Driver.DoesNotExist:
+        return JsonResponse({"status": "error", "message": f"Driver with ID {driver_id} does not exist in the system"})
+
+    try:
+        with connections['default'].cursor() as cursor:
+            query = """
+                    select distinct  driver.name,driver.phone as driver_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
+               driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
+        from "driverService_customer" as customer join
+            "driverService_driverride" as driverRide
+                on customer.ride_date_time = driverRide.ride_date_time and customer.driver_id = driverRide.driver_id
+            join "driverService_driver" as driver on driver.driver_id = driverRide.driver_id
+            join users as usersInfo on usersInfo.id = customer.customer_id
+            join users_rides_detail as userRides on usersInfo.id = userRides.user_id
+        where userRides.ride_status = 'Upcoming' and ride_type='Private' and driverRide.driver_id = %s order by ride_date_time;
+                    """
+            cursor.execute(query, [driver_id])
+            rows = cursor.fetchall()
+
+            result = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in rows
+            ]
+
+            return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
+
+    except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+def get_upcoming_sharing_rides(request, driver_id):
+    try:
+        driver = Driver.objects.get(driver_id=driver_id)
+    except Driver.DoesNotExist:
+        return JsonResponse({"status": "error", "message": f"Driver with ID {driver_id} does not exist in the system"})
+
+    try:
+        with connections['default'].cursor() as cursor:
+            query = """
+                    select distinct  driver.name,driver.phone as driver_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
+       driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
+from "driverService_customer" as customer join
+    "driverService_driverride" as driverRide
+        on customer.ride_date_time = driverRide.ride_date_time and customer.driver_id = driverRide.driver_id
+    join "driverService_driver" as driver on driver.driver_id = driverRide.driver_id
+    join users as usersInfo on usersInfo.id = customer.customer_id
+    join users_rides_detail as userRides on usersInfo.id = userRides.user_id
+where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.driver_id = %s order by ride_date_time;
+                    """
+            cursor.execute(query, [driver_id])
+            rows = cursor.fetchall()
+
+            result = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in rows
+            ]
+
+            return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": result}})
+
+    except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
+    except OperationalError as e:
+        return JsonResponse({"status":"error", "message": str(e)})
 
 
 

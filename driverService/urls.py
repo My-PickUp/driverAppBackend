@@ -9,5 +9,7 @@ urlpatterns = [
     path('getDriverDetails/', views.get_driver_details, name='get-driver-details'),
     path('getCustomerDetails/',views.get_customer_details, name='get-upcoming-rides'),
     path('rideDetailsUpload/', views.form_upload_response, name='ride-details-upload'),
+    path('getPrivateRides/<int:driver_id>/', views.get_upcoming_private_rides, name='get-upcoming-private-rides'),
+    path('getSharingRides/<int:driver_id>/', views.get_upcoming_sharing_rides, name='get-upcoming-sharing-rides'),
     path('awake/', views.awake, name='awake'),
 ]
