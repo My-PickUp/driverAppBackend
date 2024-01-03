@@ -281,7 +281,7 @@ def get_upcoming_private_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select distinct  driver.name,driver.phone as driver_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
+                    select distinct  driver.name,usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
                driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
         from "driverService_customer" as customer join
             "driverService_driverride" as driverRide
@@ -313,7 +313,7 @@ def get_upcoming_sharing_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select distinct  driver.name,driver.phone as driver_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
+                    select distinct  driver.name,usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
        driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
 from "driverService_customer" as customer join
     "driverService_driverride" as driverRide
