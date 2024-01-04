@@ -303,7 +303,7 @@ def get_upcoming_private_rides(request, driver_id):
 
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
-
+@api_view(['GET'])
 def get_upcoming_sharing_rides(request, driver_id):
     try:
         driver = Driver.objects.get(driver_id=driver_id)
