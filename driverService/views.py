@@ -338,10 +338,6 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
             return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": result}})
 
     except OperationalError as e:
-        return JsonResponse({"status": "error", "message": str(e)})
-
-
-    except OperationalError as e:
         return JsonResponse({"status":"error", "message": str(e)})
 
 
