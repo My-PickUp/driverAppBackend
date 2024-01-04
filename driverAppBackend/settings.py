@@ -80,7 +80,7 @@ WSGI_APPLICATION = 'driverAppBackend.wsgi.application'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3069",
     "http://localhost:3000",
-    "https://mypickup-react.pages.dev/",
+    "https://mypickup-react.pages.dev",
     "https://my-pickup-techyhk.vercel.app",
 ]
 
