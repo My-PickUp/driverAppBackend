@@ -285,7 +285,7 @@ def get_upcoming_private_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select distinct  driver.name,usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
+                    select distinct  driver.name,driver.phone as driver_phone, usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
                driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
         from "driverService_customer" as customer join
             "driverService_driverride" as driverRide
@@ -303,9 +303,26 @@ def get_upcoming_private_rides(request, driver_id):
                 for row in rows
             ]
 
+            with connections['default'].cursor() as update_cursor:
+                update_query = """
+                    UPDATE users_rides_detail
+                    SET driver_phone = %s, ride_date_time = %s
+                    WHERE user_id = %s;
+                """
+
+                for row in rows:
+                    driver_phone=row[1]
+                    ride_date_time = row[8].strftime('%Y-%m-%d %H:%M:%S')
+                    user_id = row[9]
+                    update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id])
+            connections['default'].commit()
+
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
     except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+    except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)})
 @api_view(['GET'])
 def get_upcoming_sharing_rides(request, driver_id):
@@ -317,7 +334,7 @@ def get_upcoming_sharing_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select distinct  driver.name,usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
+                    select distinct  driver.name,driver.phone as driver_phone, usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
        driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
 from "driverService_customer" as customer join
     "driverService_driverride" as driverRide
@@ -334,6 +351,20 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
                 dict(zip([column[0] for column in cursor.description], row))
                 for row in rows
             ]
+
+            with connections['default'].cursor() as update_cursor:
+                update_query = """
+                    UPDATE users_rides_detail
+                    SET driver_phone = %s, ride_date_time = %s
+                    WHERE user_id = %s;
+                """
+
+                for row in rows:
+                    driver_phone=row[1]
+                    ride_date_time = row[8].strftime('%Y-%m-%d %H:%M:%S')
+                    user_id = row[9]
+                    update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id])
+            connections['default'].commit()
 
             return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": result}})
 
