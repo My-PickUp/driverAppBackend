@@ -287,15 +287,53 @@ def get_upcoming_private_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select distinct  driver.name,driver.phone as driver_phone, usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
-               driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
-        from "driverService_customer" as customer join
-            "driverService_driverride" as driverRide
-                on customer.ride_date_time = driverRide.ride_date_time and customer.driver_id = driverRide.driver_id
-            join "driverService_driver" as driver on driver.driver_id = driverRide.driver_id
-            join users as usersInfo on usersInfo.id = customer.customer_id
-            join users_rides_detail as userRides on usersInfo.id = userRides.user_id
-        where userRides.ride_status = 'Upcoming' and ride_type='Private' and driverRide.driver_id = %s order by ride_date_time;
+                    SELECT DISTINCT
+    driver.name,
+    driver.phone,
+    usersInfo.phone_number AS user_phone,
+    usersInfo.name as user_name,
+    usersInfo.id AS user_id,
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.drop_priority,
+    driverRide.ride_type,
+    userRides.ride_status,
+    userRides.drop_address_type,
+    userRides.drop_address,
+    userRides.pickup_address_type,
+    userRides.pickup_address,
+    CASE
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
+        ELSE 'Unknown'
+    END AS day_of_week
+FROM
+    "driverService_customer" AS customer
+JOIN
+    "driverService_driverride" AS driverRide
+ON
+    customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
+JOIN
+    "driverService_driver" AS driver
+ON
+    driver.driver_id = driverRide.driver_id
+JOIN
+    users AS usersInfo
+ON
+    usersInfo.id = customer.customer_id
+JOIN
+    users_rides_detail AS userRides
+ON
+    usersInfo.id = userRides.user_id
+WHERE
+    userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = %s
+ORDER BY
+    ride_date_time;
                     """
             cursor.execute(query, [driver_id])
             rows = cursor.fetchall()
@@ -313,9 +351,10 @@ def get_upcoming_private_rides(request, driver_id):
                 """
 
                 for row in rows:
+                    #print(row)
                     driver_phone=row[1]
-                    ride_date_time = row[8].strftime('%Y-%m-%d %H:%M:%S')
-                    user_id = row[9]
+                    ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
+                    user_id = row[4]
                     update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id])
             connections['default'].commit()
 
@@ -372,9 +411,6 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
 
     except OperationalError as e:
         return JsonResponse({"status":"error", "message": str(e)})
-
-
-
 
 
 
