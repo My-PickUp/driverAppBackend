@@ -112,9 +112,11 @@ def is_authenticated(token):
 
 @api_view(['GET'])
 def get_driver_details(request):
+    authorization_header = request.headers.get('Authorization')
+    if not authorization_header or len(authorization_header.split()) < 2:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
 
-    token = request.headers.get('Authorization').split(' ')[1]
-
+    token = authorization_header.split(' ')[1]
 
     if not is_authenticated(token):
         return JsonResponse({'error': 'Unauthorized'}, status=401)
