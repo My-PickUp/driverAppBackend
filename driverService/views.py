@@ -176,12 +176,16 @@ ORDER BY
             cursor.execute(query)
             rows = cursor.fetchall()
 
-            # Convert rows to a list of dictionaries.
+            '''
+            Convert rows to a list of dictionaries.
+            '''
             result = [
                 dict(zip([column[0] for column in cursor.description], row))
                 for row in rows
             ]
-            # Returns result as JSON
+            '''
+            Returns result as JSON
+            '''
             return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
