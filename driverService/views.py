@@ -288,7 +288,7 @@ def get_upcoming_private_rides(request, driver_id):
         with connections['default'].cursor() as cursor:
             query = """
                     SELECT DISTINCT
-    driver.name,
+    driver.name as driver_name,
     driver.phone,
     usersInfo.phone_number AS user_phone,
     usersInfo.name as user_name,
@@ -375,7 +375,7 @@ def get_upcoming_sharing_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select distinct  driver.name,driver.phone as driver_phone, usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
+                    select distinct  driver.name as driver_name,driver.phone as driver_phone, usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
        driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
 from "driverService_customer" as customer join
     "driverService_driverride" as driverRide
@@ -393,6 +393,12 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
                 for row in rows
             ]
 
+            pairs = []
+            for i in range(0, len(result), 2):
+                if i + 1 < len(result):
+                    pair = [result[i], result[i + 1]]
+                    pairs.append(pair)
+
             with connections['default'].cursor() as update_cursor:
                 update_query = """
                     UPDATE users_rides_detail
@@ -400,21 +406,18 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
                     WHERE user_id = %s;
                 """
 
-                for row in rows:
-                    driver_phone=row[1]
-                    ride_date_time = row[8].strftime('%Y-%m-%d %H:%M:%S')
-                    user_id = row[9]
-                    update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id])
+                for pair in pairs:
+                    for row in pair:
+                        driver_phone = row['driver_phone']
+                        ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
+                        user_id = row['user_id']
+                        update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id])
             connections['default'].commit()
 
-            return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": result}})
+            return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
 
     except OperationalError as e:
-        return JsonResponse({"status":"error", "message": str(e)})
-
-
-
-
+        return JsonResponse({"status": "error", "message": str(e)})
 
 
 
