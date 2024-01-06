@@ -289,7 +289,7 @@ def get_upcoming_private_rides(request, driver_id):
             query = """
                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
     driver.name as driver_name,
-    driver.phone as driver_phone,
+    driver.phone,
     usersInfo.phone_number AS user_phone,
     usersInfo.name as user_name,
     usersInfo.id AS user_id,
@@ -302,6 +302,7 @@ def get_upcoming_private_rides(request, driver_id):
     userRides.drop_address,
     userRides.pickup_address_type,
     userRides.pickup_address,
+    driverRide.ride_id,
     CASE
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
@@ -331,7 +332,7 @@ JOIN
 ON
     usersInfo.id = userRides.user_id
 WHERE
-    userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = %s
+    userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = 1
 ORDER BY
     customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
                     """
@@ -375,7 +376,7 @@ def get_upcoming_sharing_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select DISTINCT ON (customer.ride_date_time, customer.driver_id)
+                    select DISTINCT ON (customer.ride_date_time, customer.driver_id, driverRide.ride_id)
                       driver.name as driver_name,
     driver.phone as driver_phone,
     usersInfo.phone_number AS user_phone,
@@ -390,6 +391,7 @@ def get_upcoming_sharing_rides(request, driver_id):
     userRides.drop_address,
     userRides.pickup_address_type,
     userRides.pickup_address,
+    driverRide.ride_id,
        CASE
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
@@ -441,8 +443,6 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
 
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
-
-
 
 
 
