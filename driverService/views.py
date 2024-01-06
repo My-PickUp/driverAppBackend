@@ -8,7 +8,7 @@ from django.db import connections
 from rest_framework.views import APIView
 from django.db.utils import OperationalError, IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -332,7 +332,7 @@ JOIN
 ON
     usersInfo.id = userRides.user_id
 WHERE
-    userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = 1
+    userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = %s
 ORDER BY
     customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
                     """
@@ -443,6 +443,12 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
 
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
+
+
+@api_view(['POST'])
+def start_ride(request):
+    pass
+
 
 
 
