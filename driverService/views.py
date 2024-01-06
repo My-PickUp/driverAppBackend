@@ -287,9 +287,9 @@ def get_upcoming_private_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    SELECT DISTINCT
+                    SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
     driver.name as driver_name,
-    driver.phone,
+    driver.phone as driver_phone,
     usersInfo.phone_number AS user_phone,
     usersInfo.name as user_name,
     usersInfo.id AS user_id,
@@ -333,7 +333,7 @@ ON
 WHERE
     userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = %s
 ORDER BY
-    ride_date_time;
+    customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
                     """
             cursor.execute(query, [driver_id])
             rows = cursor.fetchall()
@@ -351,7 +351,7 @@ ORDER BY
                 """
 
                 for row in rows:
-                    #print(row)
+                    # print(row)
                     driver_phone=row[1]
                     ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
                     user_id = row[4]
@@ -375,8 +375,31 @@ def get_upcoming_sharing_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select distinct  driver.name as driver_name,driver.phone as driver_phone, usersInfo.phone_number as user_phone,usersInfo.name,customer.driver_id, customer.drop_priority,
-       driverRide.ride_type, userRides.ride_status, customer.ride_date_time, usersInfo.id as user_id
+                    select DISTINCT ON (customer.ride_date_time, customer.driver_id)
+                      driver.name as driver_name,
+    driver.phone as driver_phone,
+    usersInfo.phone_number AS user_phone,
+    usersInfo.name as user_name,
+    usersInfo.id AS user_id,
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.drop_priority,
+    driverRide.ride_type,
+    userRides.ride_status,
+    userRides.drop_address_type,
+    userRides.drop_address,
+    userRides.pickup_address_type,
+    userRides.pickup_address,
+       CASE
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
+        ELSE 'Unknown'
+    END AS day_of_week
 from "driverService_customer" as customer join
     "driverService_driverride" as driverRide
         on customer.ride_date_time = driverRide.ride_date_time and customer.driver_id = driverRide.driver_id
