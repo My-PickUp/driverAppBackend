@@ -235,11 +235,26 @@ def form_upload_response(request):
 
         driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
-        ride, created = DriverRide.objects.get_or_create(
+        existing_ride = DriverRide.objects.filter(
             ride_type=ride_type,
-            ride_date_time=ride_date_time,
-            driver=driver
-        )
+            driver=driver,
+            ride_date_time__date=ride_date_time.date()
+        ).first()
+
+        ride = None
+
+        if existing_ride:
+            # Update the existing record
+            existing_ride.ride_date_time = ride_date_time
+            existing_ride.save()
+        else:
+            # Create a new DriverRide record
+            ride = DriverRide.objects.create(
+                ride_type=ride_type,
+                ride_date_time=ride_date_time,
+                driver=driver
+            )
+
 
         customer_id = ride_detail['customers'][0]['customer_id']
         drop_priority = ride_detail['customers'][0]['drop_priority']
