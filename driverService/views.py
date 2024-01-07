@@ -255,7 +255,6 @@ def form_upload_response(request):
                 driver=driver
             )
 
-
         customer_id = ride_detail['customers'][0]['customer_id']
         drop_priority = ride_detail['customers'][0]['drop_priority']
         co_passenger = ride_detail['customers'][0]['co_passenger']
@@ -384,19 +383,23 @@ ORDER BY
                     '''
                     matching_query = """
                                     SELECT 1
-                                    FROM users_rides_detail
-                                    WHERE user_id = %s AND ride_date_time = %s;
+    FROM users_rides_detail
+    WHERE user_id = %s AND DATE(ride_date_time) = DATE(%s);
                                 """
                     update_cursor.execute(matching_query, [user_id, ride_date_time])
                     matching_row = update_cursor.fetchone()
 
                     if matching_row:
-                        '''
-                        Update values in users_ride_details.
-                        '''
-                        update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id, ride_date_time])
+                        # Update values in users_rides_detail
+                        update_query = """
+                            UPDATE users_rides_detail
+                            SET driver_phone = %s, ride_date_time = %s
+                            WHERE user_id = %s AND DATE(ride_date_time) = DATE(%s);
+                        """
+                        with connections['default'].cursor() as update_cursor:
+                            update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id, ride_date_time])
 
-                connections['default'].commit()
+                    connections['default'].commit()
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
