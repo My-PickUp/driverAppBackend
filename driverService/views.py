@@ -262,8 +262,8 @@ def form_upload_response(request):
         customer_exists = Customer.objects.filter(
             customer_id=customer_id,
             driver=driver,
-            ride_date_time=ride_date_time
-        ).exists()
+            ride_date_time__date=ride_date_time.date()
+        ).first()
 
 
         copassenger_exists = Copassenger.objects.filter(
@@ -273,6 +273,9 @@ def form_upload_response(request):
 
         if customer_exists or copassenger_exists:
             print("The records already exists in the system")
+            customer_exists.ride_date_time = ride_date_time
+            customer_exists.save()
+
         else:
             customer, created = Customer.objects.get_or_create(
                 customer_id=customer_id,
