@@ -277,14 +277,19 @@ def form_upload_response(request):
                     )
 
     return Response(response_data, status=status.HTTP_201_CREATED)
+
+'''
+So everytime I loop through ride_date_time field of the result
+of the below SQL query and validating each ride_date_time
+values in each row of users_ride_details table, 
+comparing them and then if they are equal then only updating the values
+in the table users_ride_details against the user_id.
+'''
 @api_view(['GET'])
 def get_upcoming_private_rides(request, driver_id):
     try:
-        driver = Driver.objects.get(driver_id=driver_id)
-    except Driver.DoesNotExist:
-        return JsonResponse({"status": "error", "message": f"Driver with ID {driver_id} does not exist in the system"})
+        driver = get_object_or_404(Driver, driver_id=driver_id)
 
-    try:
         with connections['default'].cursor() as cursor:
             query = """
                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
@@ -344,20 +349,39 @@ ORDER BY
                 for row in rows
             ]
 
-            with connections['default'].cursor() as update_cursor:
-                update_query = """
-                    UPDATE users_rides_detail
-                    SET driver_phone = %s, ride_date_time = %s
-                    WHERE user_id = %s;
-                """
+            for row in rows:
+                driver_phone = row[1]
+                ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
+                user_id = row[4]
 
-                for row in rows:
-                    # print(row)
-                    driver_phone=row[1]
-                    ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
-                    user_id = row[4]
-                    update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id])
-            connections['default'].commit()
+                '''
+                Check if there's a matching row in users_ride_details.
+                '''
+                update_query = """
+                                UPDATE users_rides_detail
+                                SET driver_phone = %s, ride_date_time = %s
+                                WHERE user_id = %s AND ride_date_time = %s;
+                            """
+
+                with connections['default'].cursor() as update_cursor:
+                    '''
+                    Check if there's a matching row in users_ride_details.
+                    '''
+                    matching_query = """
+                                    SELECT 1
+                                    FROM users_rides_detail
+                                    WHERE user_id = %s AND ride_date_time = %s;
+                                """
+                    update_cursor.execute(matching_query, [user_id, ride_date_time])
+                    matching_row = update_cursor.fetchone()
+
+                    if matching_row:
+                        '''
+                        Update values in users_ride_details.
+                        '''
+                        update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id, ride_date_time])
+
+                connections['default'].commit()
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
@@ -366,6 +390,7 @@ ORDER BY
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)})
+
 @api_view(['GET'])
 def get_upcoming_sharing_rides(request, driver_id):
     try:
