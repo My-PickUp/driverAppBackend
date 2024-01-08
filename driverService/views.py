@@ -226,14 +226,11 @@ def form_upload_response(request):
     response_data = {
         "ride_details": ride_details
     }
-    print(response_data)
 
     for ride_detail in ride_details:
         driver_id = ride_detail['driver_id']
         ride_type = ride_detail['ride_type']
         ride_date_time = make_aware(datetime.strptime(ride_detail['ride_date_time'], "%Y-%m-%d %H:%M:%S"))
-
-        print(f"Processing ride_detail: {ride_detail}")
 
         driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
@@ -249,7 +246,7 @@ def form_upload_response(request):
             # Update the existing record
             existing_ride.ride_date_time = ride_date_time
             existing_ride.save()
-
+            ride = existing_ride  # Assigning the existing ride to 'ride'
         else:
             # Create a new DriverRide record
             ride = DriverRide.objects.create(
@@ -258,53 +255,39 @@ def form_upload_response(request):
                 driver=driver
             )
 
-            print(f"ride_detail: {ride_detail}")
-            print(f"Driver ID: {driver_id}")
-            print(f"Ride Type: {ride_type}")
-            print(f"Ride Date Time: {ride_date_time}")
-            print(f"Existing Ride ID: {existing_ride.id if existing_ride else None}")
-            print(f"New Ride ID: {ride.id if ride else None}")
+        customer_id = ride_detail['customers'][0]['customer_id']
+        drop_priority = ride_detail['customers'][0]['drop_priority']
+        co_passenger = ride_detail['customers'][0]['co_passenger']
 
-        customers_data = ride_detail.get('customers', [])
+        customer_exists = Customer.objects.filter(
+            customer_id=customer_id,
+            driver=driver,
+            ride_date_time__date=ride_date_time.date()
+        ).first()
 
-        for customer_data in customers_data:
-            customer_id = customer_data.get('customer_id')
-            drop_priority = customer_data.get('drop_priority')
-            co_passenger = customer_data.get('co_passenger')
-
-            customer_exists = Customer.objects.filter(
+        if customer_exists:
+            print("The record already exists in the system")
+            customer_exists.ride_date_time = ride_date_time
+            customer_exists.save()
+        else:
+            customer, created = Customer.objects.get_or_create(
                 customer_id=customer_id,
                 driver=driver,
-                ride_date_time__date=ride_date_time.date()
-            ).first()
+                ride_date_time=ride_date_time
+            )
 
-            copassenger_exists = Copassenger.objects.filter(
-                co_passenger__customer_id=customer_id,
+            if created or (drop_priority is not None and customer.drop_priority is None):
+                customer.drop_priority = drop_priority
+                customer.save()
+
+        if co_passenger:
+            co_passenger, created = Copassenger.objects.get_or_create(
+                co_passenger=customer,
                 ride=ride
-            ).exists()
-
-            if customer_exists or copassenger_exists:
-                customer_exists.ride_date_time = ride_date_time
-                customer_exists.save()
-
-            else:
-                customer, created = Customer.objects.get_or_create(
-                    customer_id=customer_id,
-                    driver=driver,
-                    ride_date_time=ride_date_time
-                )
-
-                if created or (drop_priority is not None and customer.drop_priority is None):
-                    customer.drop_priority = drop_priority
-                    customer.save()
-
-                if co_passenger:
-                    co_passenger, created = Copassenger.objects.get_or_create(
-                        co_passenger=customer,
-                        ride=ride
-                    )
+            )
 
     return Response(response_data, status=status.HTTP_201_CREATED)
+
 '''
 So everytime I loop through ride_date_time field of the result
 of the below SQL query and validating each ride_date_time
