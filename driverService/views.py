@@ -201,11 +201,9 @@ def form_upload_response(request):
 
     ride_details = []
     for row in reader:
-        ride_date_time_str = row.get('ride_date_time', '')
-        try:
-            ride_date_time = make_aware(datetime.strptime(ride_date_time_str, "%Y-%m-%d %H:%M:%S"))
-        except ValueError as e:
-            return Response({"error": f"Error parsing ride_date_time: {e}"}, status=status.HTTP_400_BAD_REQUEST)
+        ride_date_time = row.get('ride_date_time', '')
+        if not ride_date_time:
+            continue
         driver_id = row.get('driver', '')
         ride_type = row.get('ride_type', '')
         customer_id = row.get('customer_id', '')
@@ -233,9 +231,13 @@ def form_upload_response(request):
     for ride_detail in ride_details:
         driver_id = ride_detail['driver_id']
         ride_type = ride_detail['ride_type']
-        ride_date_time = ride_detail['ride_date_time']
+        ride_date_time = make_aware(datetime.strptime(ride_detail['ride_date_time'], "%Y-%m-%d %H:%M:%S"))
 
         print(f"Processing ride_detail: {ride_detail}")
+        print(f"\nProcessing ride_detail: {ride_detail}")
+        print(f"Driver ID: {driver_id}")
+        print(f"Ride Type: {ride_type}")
+        print(f"Ride Date Time: {ride_date_time}")
 
         driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
