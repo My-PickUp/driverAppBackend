@@ -1,6 +1,7 @@
 import csv
 import random
 
+import requests
 from django.utils.timezone import make_aware
 from django.db import transaction
 import jwt
@@ -317,7 +318,7 @@ def get_upcoming_private_rides(request, driver_id):
             query = """
                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
     driver.name as driver_name,
-    driver.phone,
+    driver.phone as driver_phone,
     usersInfo.phone_number AS user_phone,
     usersInfo.name as user_name,
     usersInfo.id AS user_id,
@@ -325,6 +326,7 @@ def get_upcoming_private_rides(request, driver_id):
     customer.driver_id,
     customer.drop_priority,
     driverRide.ride_type,
+    userRides.id as customer_ride_id,
     userRides.ride_status,
     userRides.drop_address_type,
     userRides.drop_address,
@@ -373,42 +375,15 @@ ORDER BY
             ]
 
             for row in rows:
+                print(row)
                 driver_phone = row[1]
                 ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
                 user_id = row[4]
+                customer_ride_id = row[9]
 
-                '''
-                Check if there's a matching row in users_ride_details.
-                '''
-                update_query = """
-                                UPDATE users_rides_detail
-                                SET driver_phone = %s, ride_date_time = %s
-                                WHERE user_id = %s AND ride_date_time = %s;
-                            """
+                url = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
 
-                with connections['default'].cursor() as update_cursor:
-                    '''
-                    Check if there's a matching row in users_ride_details.
-                    '''
-                    matching_query = """
-                                    SELECT 1
-    FROM users_rides_detail
-    WHERE user_id = %s AND DATE(ride_date_time) = DATE(%s);
-                                """
-                    update_cursor.execute(matching_query, [user_id, ride_date_time])
-                    matching_row = update_cursor.fetchone()
-
-                    if matching_row:
-                        # Update values in users_rides_detail
-                        update_query = """
-                            UPDATE users_rides_detail
-                            SET driver_phone = %s, ride_date_time = %s
-                            WHERE user_id = %s AND DATE(ride_date_time) = DATE(%s);
-                        """
-                        with connections['default'].cursor() as update_cursor:
-                            update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id, ride_date_time])
-
-                    connections['default'].commit()
+                requests.put(url)
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
