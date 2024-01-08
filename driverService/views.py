@@ -388,7 +388,6 @@ ORDER BY
 
                 requests.put(url)
 
-
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
     except OperationalError as e:
