@@ -1,8 +1,7 @@
 import csv
+import json
 import random
 import requests
-
-from django.contrib.sites import requests
 from django.utils.timezone import make_aware
 from django.db import transaction
 import jwt
@@ -193,6 +192,58 @@ ORDER BY
             return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
+@api_view(['GET'])
+def get_customer_details(request):
+    try:
+        with connections['default'].cursor() as cursor:
+            query = """
+            SELECT DISTINCT ON (users_rides_detail.ride_date_time)
+    CASE EXTRACT(DOW FROM users_rides_detail.ride_date_time)
+        WHEN 0 THEN 'Sunday'
+        WHEN 1 THEN 'Monday'
+        WHEN 2 THEN 'Tuesday'
+        WHEN 3 THEN 'Wednesday'
+        WHEN 4 THEN 'Thursday'
+        WHEN 5 THEN 'Friday'
+        WHEN 6 THEN 'Saturday'
+        ELSE 'Unknown Day'
+    END AS day_of_week,
+    users.id AS customer_id,
+    users.name AS customer_name,
+    users_rides_detail.pickup_address_type,
+    users_rides_detail.pickup_address,
+    users_rides_detail.drop_address_type,
+    users_rides_detail.drop_address,
+    users_rides_detail.ride_status,
+    users_rides_detail.ride_date_time
+FROM
+    users
+JOIN
+    users_subscription ON users.id = users_subscription.user_id
+JOIN
+    users_rides_detail ON users_rides_detail.user_id = users.id
+WHERE
+    users_rides_detail.ride_status = 'Upcoming'
+ORDER BY
+    users_rides_detail.ride_date_time;
+
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+            '''
+            Convert rows to a list of dictionaries.
+            '''
+            result = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in rows
+            ]
+            '''
+            Returns result as JSON
+            '''
+            return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
+    except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})
 @api_view(['POST'])
 def form_upload_response(request):
     if 'csv_file' not in request.FILES:
@@ -235,36 +286,28 @@ def form_upload_response(request):
 
         print(f"Processing ride_detail: {ride_detail}")
 
-
         driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
         existing_ride = DriverRide.objects.filter(
             ride_type=ride_type,
+            ride_date_time=ride_date_time,
             driver=driver,
-            ride_date_time__date=ride_date_time.date()
         ).first()
 
         ride = None
 
         if existing_ride:
-            # Update the existing record
             existing_ride.ride_date_time = ride_date_time
             existing_ride.save()
 
         else:
-            # Create a new DriverRide record
             ride = DriverRide.objects.create(
                 ride_type=ride_type,
                 ride_date_time=ride_date_time,
                 driver=driver
             )
 
-            print(f"ride_detail: {ride_detail}")
-            print(f"Driver ID: {driver_id}")
-            print(f"Ride Type: {ride_type}")
-            print(f"Ride Date Time: {ride_date_time}")
-            print(f"Existing Ride ID: {existing_ride.id if existing_ride else None}")
-            print(f"New Ride ID: {ride.id if ride else None}")
+
 
         customer_id = ride_detail['customers'][0]['customer_id']
         drop_priority = ride_detail['customers'][0]['drop_priority']
@@ -276,15 +319,16 @@ def form_upload_response(request):
             ride_date_time__date=ride_date_time.date()
         ).first()
 
+
         copassenger_exists = Copassenger.objects.filter(
             co_passenger__customer_id=customer_id,
             ride=ride
         ).exists()
 
         if customer_exists or copassenger_exists:
+            print("The records already exists in the system")
             customer_exists.ride_date_time = ride_date_time
             customer_exists.save()
-
         else:
             customer, created = Customer.objects.get_or_create(
                 customer_id=customer_id,
@@ -303,6 +347,7 @@ def form_upload_response(request):
                     )
 
     return Response(response_data, status=status.HTTP_201_CREATED)
+
 '''
 So everytime I loop through ride_date_time field of the result
 of the below SQL query and validating each ride_date_time
@@ -382,9 +427,22 @@ ORDER BY
                 user_id = row[4]
                 customer_ride_id = row[9]
 
-                url = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
+                update_customer_rides_table = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
+                requests.put(update_customer_rides_table)
+                url = f'https://fast-o4qh.onrender.com/reschedule_ride/?ride_id={customer_ride_id}'
 
-                requests.put(url)
+                payload = json.dumps({
+                    "ride_id": customer_ride_id,
+                    "new_datetime": ride_date_time
+                })
+
+                headers = {
+                    'accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+
+                response = requests.request("PUT", url, headers=headers, data=payload)
+                print(response)
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
@@ -414,6 +472,7 @@ def get_upcoming_sharing_rides(request, driver_id):
     customer.driver_id,
     customer.drop_priority,
     driverRide.ride_type,
+    userRides.id as customer_ride_id,
     userRides.ride_status,
     userRides.drop_address_type,
     userRides.drop_address,
@@ -452,20 +511,16 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
                     pair = [result[i], result[i + 1]]
                     pairs.append(pair)
 
-            with connections['default'].cursor() as update_cursor:
-                update_query = """
-                    UPDATE users_rides_detail
-                    SET driver_phone = %s, ride_date_time = %s
-                    WHERE user_id = %s;
-                """
+            for pair in pairs:
+                for row in pair:
+                    print(row)
+                    driver_phone = row['driver_phone']
+                    ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
+                    user_id = row['user_id']
+                    customer_ride_id = row['customer_ride_id']
+                    update_customer_sharing_rides_table = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
+                    requests.put(update_customer_sharing_rides_table)
 
-                for pair in pairs:
-                    for row in pair:
-                        driver_phone = row['driver_phone']
-                        ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
-                        user_id = row['user_id']
-                        update_cursor.execute(update_query, [driver_phone, ride_date_time, user_id])
-            connections['default'].commit()
 
             return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
 
