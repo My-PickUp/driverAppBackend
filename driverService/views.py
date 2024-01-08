@@ -245,7 +245,7 @@ def form_upload_response(request):
 
         ride = None
 
-        if existing_ride or existing_ride.ride_date_time.date() == ride_date_time:
+        if existing_ride:
             # Update the existing record
             existing_ride.ride_date_time = ride_date_time
             existing_ride.save()
