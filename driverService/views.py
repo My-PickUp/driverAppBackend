@@ -192,58 +192,7 @@ ORDER BY
             return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
-@api_view(['GET'])
-def get_customer_details(request):
-    try:
-        with connections['default'].cursor() as cursor:
-            query = """
-            SELECT DISTINCT ON (users_rides_detail.ride_date_time)
-    CASE EXTRACT(DOW FROM users_rides_detail.ride_date_time)
-        WHEN 0 THEN 'Sunday'
-        WHEN 1 THEN 'Monday'
-        WHEN 2 THEN 'Tuesday'
-        WHEN 3 THEN 'Wednesday'
-        WHEN 4 THEN 'Thursday'
-        WHEN 5 THEN 'Friday'
-        WHEN 6 THEN 'Saturday'
-        ELSE 'Unknown Day'
-    END AS day_of_week,
-    users.id AS customer_id,
-    users.name AS customer_name,
-    users_rides_detail.pickup_address_type,
-    users_rides_detail.pickup_address,
-    users_rides_detail.drop_address_type,
-    users_rides_detail.drop_address,
-    users_rides_detail.ride_status,
-    users_rides_detail.ride_date_time
-FROM
-    users
-JOIN
-    users_subscription ON users.id = users_subscription.user_id
-JOIN
-    users_rides_detail ON users_rides_detail.user_id = users.id
-WHERE
-    users_rides_detail.ride_status = 'Upcoming'
-ORDER BY
-    users_rides_detail.ride_date_time;
 
-            """
-            cursor.execute(query)
-            rows = cursor.fetchall()
-
-            '''
-            Convert rows to a list of dictionaries.
-            '''
-            result = [
-                dict(zip([column[0] for column in cursor.description], row))
-                for row in rows
-            ]
-            '''
-            Returns result as JSON
-            '''
-            return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
-    except OperationalError as e:
-        return JsonResponse({"status": "error", "message": str(e)})
 @api_view(['POST'])
 def form_upload_response(request):
     if 'csv_file' not in request.FILES:
@@ -427,14 +376,13 @@ ORDER BY
                 user_id = row[4]
                 customer_ride_id = row[9]
 
-                update_customer_rides_table = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
-                requests.put(update_customer_rides_table)
                 url = f'https://fast-o4qh.onrender.com/reschedule_ride/?ride_id={customer_ride_id}'
 
                 payload = json.dumps({
                     "ride_id": customer_ride_id,
                     "new_datetime": ride_date_time
                 })
+                print(payload)
 
                 headers = {
                     'accept': 'application/json',
@@ -442,7 +390,9 @@ ORDER BY
                 }
 
                 response = requests.request("PUT", url, headers=headers, data=payload)
-                print(response)
+
+                update_customer_rides_table = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
+                requests.put(update_customer_rides_table)
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
@@ -513,13 +463,17 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
 
             for pair in pairs:
                 for row in pair:
-                    print(row)
+                    #print(row)
                     driver_phone = row['driver_phone']
                     ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
                     user_id = row['user_id']
                     customer_ride_id = row['customer_ride_id']
+                    print(customer_ride_id, driver_phone)
                     update_customer_sharing_rides_table = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
-                    requests.put(update_customer_sharing_rides_table)
+                    print(update_customer_sharing_rides_table)
+                    response = requests.put(update_customer_sharing_rides_table).json()
+                    #print(response)
+
 
 
             return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
