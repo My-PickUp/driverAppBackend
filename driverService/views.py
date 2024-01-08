@@ -369,6 +369,8 @@ ORDER BY
                 for row in rows
             ]
 
+
+
             for row in rows:
                 print(row)
                 driver_phone = row[1]
@@ -376,25 +378,11 @@ ORDER BY
                 user_id = row[4]
                 customer_ride_id = row[9]
 
-                url = f'https://fast-o4qh.onrender.com/reschedule_ride/?ride_id={customer_ride_id}'
+                reschedule_ride(customer_ride_id, ride_date_time)
+                update_customer_sharing_rides(customer_ride_id, driver_phone)
 
-                payload = json.dumps({
-                    "ride_id": customer_ride_id,
-                    "new_datetime": ride_date_time
-                })
-                print(payload)
 
-                headers = {
-                    'accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-
-                response = requests.request("PUT", url, headers=headers, data=payload)
-
-                update_customer_rides_table = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
-                requests.put(update_customer_rides_table)
-
-            return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
+            return JsonResponse({"status": "success", "data": {"upcoming_private_rides": [result]}})
 
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
@@ -469,10 +457,8 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
                     user_id = row['user_id']
                     customer_ride_id = row['customer_ride_id']
                     print(customer_ride_id, driver_phone)
-                    update_customer_sharing_rides_table = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
-                    print(update_customer_sharing_rides_table)
-                    response = requests.put(update_customer_sharing_rides_table).json()
-                    #print(response)
+                    reschedule_ride(customer_ride_id, ride_date_time)
+                    update_customer_sharing_rides(customer_ride_id, driver_phone)
 
 
 
@@ -480,6 +466,42 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
 
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
+
+
+def reschedule_ride(customer_ride_id, ride_date_time):
+
+    url = f'https://fast-o4qh.onrender.com/reschedule_ride/?ride_id={customer_ride_id}'
+
+    payload = json.dumps({
+        "ride_id": customer_ride_id,
+        "new_datetime": ride_date_time
+    })
+    print(payload)
+
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+
+    try:
+        response = requests.put(url, headers=headers, data=payload)
+        response.raise_for_status()  # Raises HTTPError for bad responses
+        print(response.status_code)
+        print(response.text)
+    except requests.exceptions.RequestException as e:
+        print(f"Error making reschedule request: {e}")
+
+def update_customer_sharing_rides(customer_ride_id, driver_phone):
+    update_url = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
+    print(update_url)
+
+    try:
+        response = requests.put(update_url)
+        response.raise_for_status()  # Raises HTTPError for bad responses
+        json_response = response.json()
+        print(json_response)
+    except requests.exceptions.RequestException as e:
+        print(f"Error updating customer sharing rides table: {e}")
 
 
 @api_view(['POST'])
