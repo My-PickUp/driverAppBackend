@@ -1,7 +1,8 @@
 import csv
 import random
-
 import requests
+
+from django.contrib.sites import requests
 from django.utils.timezone import make_aware
 from django.db import transaction
 import jwt
@@ -203,8 +204,6 @@ def form_upload_response(request):
     ride_details = []
     for row in reader:
         ride_date_time = row.get('ride_date_time', '')
-        if not ride_date_time:
-            continue
         driver_id = row.get('driver', '')
         ride_type = row.get('ride_type', '')
         customer_id = row.get('customer_id', '')
@@ -235,10 +234,6 @@ def form_upload_response(request):
         ride_date_time = make_aware(datetime.strptime(ride_detail['ride_date_time'], "%Y-%m-%d %H:%M:%S"))
 
         print(f"Processing ride_detail: {ride_detail}")
-        print(f"\nProcessing ride_detail: {ride_detail}")
-        print(f"Driver ID: {driver_id}")
-        print(f"Ride Type: {ride_type}")
-        print(f"Ride Date Time: {ride_date_time}")
 
         driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
@@ -250,10 +245,11 @@ def form_upload_response(request):
 
         ride = None
 
-        if existing_ride:
+        if existing_ride or existing_ride.ride_date_time.date() == ride_date_time:
             # Update the existing record
             existing_ride.ride_date_time = ride_date_time
             existing_ride.save()
+
         else:
             # Create a new DriverRide record
             ride = DriverRide.objects.create(
@@ -262,37 +258,45 @@ def form_upload_response(request):
                 driver=driver
             )
 
-        customer_id = ride_detail['customers'][0]['customer_id']
-        drop_priority = ride_detail['customers'][0]['drop_priority']
-        co_passenger = ride_detail['customers'][0]['co_passenger']
+            print(f"ride_detail: {ride_detail}")
+            print(f"Driver ID: {driver_id}")
+            print(f"Ride Type: {ride_type}")
+            print(f"Ride Date Time: {ride_date_time}")
+            print(f"Existing Ride ID: {existing_ride.id if existing_ride else None}")
+            print(f"New Ride ID: {ride.id if ride else None}")
 
-        customer_exists = Customer.objects.filter(
-            customer_id=customer_id,
-            driver=driver,
-            ride_date_time__date=ride_date_time.date()
-        ).first()
+        customers_data = ride_detail.get('customers', [])
 
+        for customer_data in customers_data:
+            customer_id = customer_data.get('customer_id')
+            drop_priority = customer_data.get('drop_priority')
+            co_passenger = customer_data.get('co_passenger')
 
-        copassenger_exists = Copassenger.objects.filter(
-            co_passenger__customer_id=customer_id,
-            ride=ride
-        ).exists()
-
-        if customer_exists or copassenger_exists:
-            print("The records already exists in the system")
-            customer_exists.ride_date_time = ride_date_time
-            customer_exists.save()
-
-        else:
-            customer, created = Customer.objects.get_or_create(
+            customer_exists = Customer.objects.filter(
                 customer_id=customer_id,
                 driver=driver,
-                ride_date_time=ride_date_time
-            )
+                ride_date_time__date=ride_date_time.date()
+            ).first()
 
-            if created or (drop_priority is not None and customer.drop_priority is None):
-                customer.drop_priority = drop_priority
-                customer.save()
+            copassenger_exists = Copassenger.objects.filter(
+                co_passenger__customer_id=customer_id,
+                ride=ride
+            ).exists()
+
+            if customer_exists or copassenger_exists:
+                customer_exists.ride_date_time = ride_date_time
+                customer_exists.save()
+
+            else:
+                customer, created = Customer.objects.get_or_create(
+                    customer_id=customer_id,
+                    driver=driver,
+                    ride_date_time=ride_date_time
+                )
+
+                if created or (drop_priority is not None and customer.drop_priority is None):
+                    customer.drop_priority = drop_priority
+                    customer.save()
 
                 if co_passenger:
                     co_passenger, created = Copassenger.objects.get_or_create(
@@ -301,7 +305,6 @@ def form_upload_response(request):
                     )
 
     return Response(response_data, status=status.HTTP_201_CREATED)
-
 '''
 So everytime I loop through ride_date_time field of the result
 of the below SQL query and validating each ride_date_time
@@ -384,6 +387,7 @@ ORDER BY
                 url = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
 
                 requests.put(url)
+
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": result}})
 
