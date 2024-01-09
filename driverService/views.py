@@ -6,6 +6,7 @@ from django.utils.timezone import make_aware
 from django.db import transaction
 import jwt
 from django.db import connections
+from django.views.decorators.cache import cache_page
 from rest_framework.views import APIView
 from django.db.utils import OperationalError, IntegrityError
 from django.core.exceptions import ObjectDoesNotExist
@@ -20,6 +21,7 @@ from django_ratelimit.decorators import ratelimit
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
+from django.core.cache import cache
 from driverService.serializers import CustomerSerializer
 
 @api_view(['GET'])
@@ -310,7 +312,14 @@ comparing them and then if they are equal then only updating the values
 in the table users_ride_details against the user_id.
 '''
 @api_view(['GET'])
+@cache_page(60 * 5)
 def get_upcoming_private_rides(request, driver_id):
+    cache_key = f'upcoming_private_rides_{driver_id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return JsonResponse({"status": "success", "data": {"upcoming_private_rides": cached_result}})
+
+
     try:
         driver = get_object_or_404(Driver, driver_id=driver_id)
 
@@ -377,7 +386,7 @@ ORDER BY
 
 
             for row in rows:
-                print(row)
+                #print(row)
                 driver_phone = row[1]
                 ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
                 user_id = row[4]
@@ -385,6 +394,7 @@ ORDER BY
 
                 reschedule_ride(customer_ride_id, ride_date_time)
                 update_customer_sharing_rides(customer_ride_id, driver_phone)
+                cache.set(cache_key, result, timeout=300)
 
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": [result]}})
@@ -396,7 +406,13 @@ ORDER BY
         return JsonResponse({"status": "error", "message": str(e)})
 
 @api_view(['GET'])
+@cache_page(60 * 5)
 def get_upcoming_sharing_rides(request, driver_id):
+    cache_key = f'upcoming_private_rides_{driver_id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return JsonResponse({"status": "success", "data": {"upcoming_private_rides": cached_result}})
+
     try:
         driver = Driver.objects.get(driver_id=driver_id)
     except Driver.DoesNotExist:
@@ -479,14 +495,12 @@ ORDER BY
                     print(customer_ride_id, driver_phone)
                     reschedule_ride(customer_ride_id, ride_date_time)
                     update_customer_sharing_rides(customer_ride_id, driver_phone)
-
-
+                    cache.set(cache_key, result, timeout=300)
 
             return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
 
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
-
 
 def reschedule_ride(customer_ride_id, ride_date_time):
 
