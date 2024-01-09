@@ -28,6 +28,7 @@ class DriverRide(models.Model):
 class Customer(models.Model):
     id = models.AutoField(primary_key=True)
     customer_id = models.IntegerField()
+    customer_ride_id = models.IntegerField(null=True, blank=True)
     phone = models.CharField(max_length=12, blank=True, null=True)
     drop_priority = models.IntegerField(null=True, blank=True)
     driver = models.ForeignKey(Driver,to_field='driver_id', on_delete=models.CASCADE)
