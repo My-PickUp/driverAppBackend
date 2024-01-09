@@ -312,7 +312,7 @@ comparing them and then if they are equal then only updating the values
 in the table users_ride_details against the user_id.
 '''
 @api_view(['GET'])
-@cache_page(60 * 5)
+@cache_page(60 * 20)
 def get_upcoming_private_rides(request, driver_id):
     cache_key = f'upcoming_private_rides_{driver_id}'
     cached_result = cache.get(cache_key)
@@ -383,21 +383,34 @@ ORDER BY
                 for row in rows
             ]
 
+            pairs = []
+            for i in range(len(result)):
+                pair = [result[i]]
+                pairs.append(pair)
+
+            for pair in pairs:
+                for row in pair:
+                    # print(row)
+                    driver_phone = row['driver_phone']
+                    ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
+                    user_id = row['user_id']
+                    customer_ride_id = row['customer_ride_id']
+                    # print(driver_phone, ride_date_time, user_id, customer_ride_id)
+                    reschedule_ride(customer_ride_id, ride_date_time)
+                    update_customer_sharing_rides(customer_ride_id, driver_phone)
+                    cache.set(cache_key, result, timeout=300)
 
 
-            for row in rows:
-                #print(row)
-                driver_phone = row[1]
-                ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
-                user_id = row[4]
-                customer_ride_id = row[9]
 
-                reschedule_ride(customer_ride_id, ride_date_time)
-                update_customer_sharing_rides(customer_ride_id, driver_phone)
-                cache.set(cache_key, result, timeout=300)
+            # for row in rows:
+            #     #print(row)
+            #     driver_phone = row[1]
+            #     ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
+            #     user_id = row[4]
+            #     customer_ride_id = row[9]
 
 
-            return JsonResponse({"status": "success", "data": {"upcoming_private_rides": [result]}})
+            return JsonResponse({"status": "success", "data": {"upcoming_private_rides": pairs}})
 
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
@@ -406,7 +419,7 @@ ORDER BY
         return JsonResponse({"status": "error", "message": str(e)})
 
 @api_view(['GET'])
-@cache_page(60 * 5)
+@cache_page(60 * 20)
 def get_upcoming_sharing_rides(request, driver_id):
     cache_key = f'upcoming_sharing_rides_{driver_id}'
     cached_result = cache.get(cache_key)
