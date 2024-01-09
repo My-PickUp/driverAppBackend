@@ -408,10 +408,10 @@ ORDER BY
 @api_view(['GET'])
 @cache_page(60 * 5)
 def get_upcoming_sharing_rides(request, driver_id):
-    cache_key = f'upcoming_private_rides_{driver_id}'
+    cache_key = f'upcoming_sharing_rides_{driver_id}'
     cached_result = cache.get(cache_key)
     if cached_result:
-        return JsonResponse({"status": "success", "data": {"upcoming_private_rides": cached_result}})
+        return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": cached_result}})
 
     try:
         driver = Driver.objects.get(driver_id=driver_id)
