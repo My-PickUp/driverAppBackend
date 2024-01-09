@@ -470,12 +470,12 @@ where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.
 
 def reschedule_ride(customer_ride_id, ride_date_time):
 
-    url = f'https://fast-o4qh.onrender.com/reschedule_ride/?ride_id={customer_ride_id}'
+    url = f'https://fast-o4qh.onrender.com/reschedule_ride/'
 
     payload = json.dumps({
-        "ride_id": customer_ride_id,
-        "new_datetime": ride_date_time
-    })
+  "ride_id": customer_ride_id,
+  "new_datetime": ride_date_time
+})
     print(payload)
 
     headers = {
