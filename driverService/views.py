@@ -210,6 +210,7 @@ def form_upload_response(request):
         customer_id = row.get('customer_id', '')
         drop_priority = int(row.get('drop_priority', '')) if row.get('drop_priority', '') else None
         co_passenger = row.get('co_passenger', '') or None
+        customer_ride_id = row.get('customer_ride_id', '')  # Add this line
 
         ride_details.append({
             "ride_date_time": ride_date_time,
@@ -219,7 +220,8 @@ def form_upload_response(request):
                 {
                     "customer_id": customer_id,
                     "drop_priority": drop_priority,
-                    "co_passenger": co_passenger
+                    "co_passenger": co_passenger,
+                    "customer_ride_id": customer_ride_id  # Add this line
                 }
             ]
         })
@@ -257,44 +259,48 @@ def form_upload_response(request):
                 driver=driver
             )
 
-        customer_id = ride_detail['customers'][0]['customer_id']
-        drop_priority = ride_detail['customers'][0]['drop_priority']
-        co_passenger = ride_detail['customers'][0]['co_passenger']
+        for customer_detail in ride_detail['customers']:
+            customer_id = customer_detail['customer_id']
+            drop_priority = customer_detail['drop_priority']
+            co_passenger = customer_detail['co_passenger']
+            customer_ride_id = customer_detail.get('customer_ride_id', None)
 
-        customer_exists = Customer.objects.filter(
-            customer_id=customer_id,
-            driver=driver,
-            ride_date_time__date=ride_date_time.date()
-        ).first()
-
-
-        copassenger_exists = Copassenger.objects.filter(
-            co_passenger__customer_id=customer_id,
-            ride=ride
-        ).exists()
-
-        if customer_exists or copassenger_exists:
-            print("The records already exists in the system")
-            customer_exists.ride_date_time = ride_date_time
-            customer_exists.save()
-        else:
-            customer, created = Customer.objects.get_or_create(
+            customer_exists = Customer.objects.filter(
                 customer_id=customer_id,
                 driver=driver,
-                ride_date_time=ride_date_time
-            )
+                ride_date_time__date=ride_date_time.date(),
+                customer_ride_id=customer_ride_id
+            ).first()
 
-            if created or (drop_priority is not None and customer.drop_priority is None):
-                customer.drop_priority = drop_priority
-                customer.save()
+            copassenger_exists = Copassenger.objects.filter(
+                co_passenger__customer_id=customer_id,
+                ride=ride
+            ).exists()
 
-                if co_passenger:
-                    co_passenger, created = Copassenger.objects.get_or_create(
-                        co_passenger=customer,
-                        ride=ride
-                    )
+            if customer_exists or copassenger_exists:
+                print("The records already exist in the system")
+                customer_exists.ride_date_time = ride_date_time
+                customer_exists.save()
+            else:
+                customer, created = Customer.objects.get_or_create(
+                    customer_id=customer_id,
+                    driver=driver,
+                    ride_date_time=ride_date_time,
+                    customer_ride_id=customer_ride_id
+                )
+
+                if created or (drop_priority is not None and customer.drop_priority is None):
+                    customer.drop_priority = drop_priority
+                    customer.save()
+
+                    if co_passenger:
+                        co_passenger, created = Copassenger.objects.get_or_create(
+                            co_passenger=customer,
+                            ride=ride
+                        )
 
     return Response(response_data, status=status.HTTP_201_CREATED)
+
 
 '''
 So everytime I loop through ride_date_time field of the result
@@ -320,7 +326,7 @@ def get_upcoming_private_rides(request, driver_id):
     customer.driver_id,
     customer.drop_priority,
     driverRide.ride_type,
-    userRides.id as customer_ride_id,
+    customer.customer_ride_id as customer_ride_id,
     userRides.ride_status,
     userRides.drop_address_type,
     userRides.drop_address,
@@ -399,8 +405,8 @@ def get_upcoming_sharing_rides(request, driver_id):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-                    select DISTINCT ON (customer.ride_date_time, customer.driver_id, driverRide.ride_id)
-                      driver.name as driver_name,
+                    SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
+    driver.name as driver_name,
     driver.phone as driver_phone,
     usersInfo.phone_number AS user_phone,
     usersInfo.name as user_name,
@@ -409,14 +415,14 @@ def get_upcoming_sharing_rides(request, driver_id):
     customer.driver_id,
     customer.drop_priority,
     driverRide.ride_type,
-    userRides.id as customer_ride_id,
+    customer.customer_ride_id as customer_ride_id,
     userRides.ride_status,
     userRides.drop_address_type,
     userRides.drop_address,
     userRides.pickup_address_type,
     userRides.pickup_address,
     driverRide.ride_id,
-       CASE
+    CASE
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
@@ -426,13 +432,28 @@ def get_upcoming_sharing_rides(request, driver_id):
         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
         ELSE 'Unknown'
     END AS day_of_week
-from "driverService_customer" as customer join
-    "driverService_driverride" as driverRide
-        on customer.ride_date_time = driverRide.ride_date_time and customer.driver_id = driverRide.driver_id
-    join "driverService_driver" as driver on driver.driver_id = driverRide.driver_id
-    join users as usersInfo on usersInfo.id = customer.customer_id
-    join users_rides_detail as userRides on usersInfo.id = userRides.user_id
-where userRides.ride_status = 'Upcoming' and ride_type='Sharing' and driverRide.driver_id = %s order by ride_date_time;
+FROM
+    "driverService_customer" AS customer
+JOIN
+    "driverService_driverride" AS driverRide
+ON
+    customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
+JOIN
+    "driverService_driver" AS driver
+ON
+    driver.driver_id = driverRide.driver_id
+JOIN
+    users AS usersInfo
+ON
+    usersInfo.id = customer.customer_id
+JOIN
+    users_rides_detail AS userRides
+ON
+    usersInfo.id = userRides.user_id
+WHERE
+    userRides.ride_status = 'Upcoming' AND ride_type = 'Sharing' AND driverRide.driver_id = %s
+ORDER BY
+    customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
                     """
             cursor.execute(query, [driver_id])
             rows = cursor.fetchall()
