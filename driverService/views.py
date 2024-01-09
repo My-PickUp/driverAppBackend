@@ -158,7 +158,7 @@ def get_customer_details(request):
     END AS day_of_week,
     users.id AS customer_id,
     users.name AS customer_name,
-    users_rides_detail.id,
+    users_rides_detail.id AS subscription_id,
     users_rides_detail.pickup_address_type,
     users_rides_detail.pickup_address,
     users_rides_detail.drop_address_type,
