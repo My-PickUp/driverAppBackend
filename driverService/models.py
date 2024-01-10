@@ -25,6 +25,7 @@ class DriverRide(models.Model):
     driver = models.ForeignKey(Driver, to_field='driver_id',on_delete=models.CASCADE)
     ride_type = models.CharField(max_length=20, choices=[("Sharing", "Sharing"), ("Private", "Private")])
 
+
 class Customer(models.Model):
     id = models.AutoField(primary_key=True)
     customer_id = models.IntegerField()

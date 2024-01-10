@@ -558,10 +558,10 @@ def update_customer_sharing_rides(customer_ride_id, driver_phone):
 
 
 @api_view(['POST'])
-def start_ride(request):
+def start_ride(request, customer_ride_id, driver_id):
     pass
 @api_view(['POST'])
-def end_ride(request):
+def end_ride(request, customer_ride_id, driver_id):
     pass
 
 
