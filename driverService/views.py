@@ -29,7 +29,6 @@ def awake(request):
     response_data = {'message': 'I am awake'}
     return Response(response_data, status=200)
 @api_view(['GET'])
-@ratelimit(key='ip', rate='5/m', block=True)
 def get_drivers(request, phone):
     drivers = get_object_or_404(Driver, phone= phone)
     serializer = DriverSerializer(drivers)
@@ -399,16 +398,6 @@ ORDER BY
                     reschedule_ride(customer_ride_id, ride_date_time)
                     update_customer_sharing_rides(customer_ride_id, driver_phone)
                     cache.set(cache_key, result, timeout=300)
-
-
-
-            # for row in rows:
-            #     #print(row)
-            #     driver_phone = row[1]
-            #     ride_date_time = row[5].strftime('%Y-%m-%d %H:%M:%S')
-            #     user_id = row[4]
-            #     customer_ride_id = row[9]
-
 
             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": pairs}})
 
