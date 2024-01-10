@@ -111,7 +111,9 @@ def is_authenticated(token):
         return True
     except Exception as e:
         return False
-
+'''
+DriverApp UI will use this API for driver verification using authorisation technique.
+'''
 @api_view(['GET'])
 def get_driver_details(request):
     authorization_header = request.headers.get('Authorization')
@@ -140,7 +142,11 @@ def get_driver_details(request):
     }
 
     return JsonResponse(driver_details, status=200)
-
+'''
+This API will join all the relevant tables of customerAppBackend service 
+and project it on the admin dashboard making it easy for our 
+Ops team to work on the existing customer data.
+'''
 @api_view(['GET'])
 def get_customer_details(request):
     try:
@@ -194,6 +200,11 @@ ORDER BY
             return JsonResponse({"status": "success", "data": {"upcoming_customers": result}})
     except OperationalError as e:
         return JsonResponse({"status": "error", "message": str(e)})
+'''
+This API will fetch the data from upload file the one that will 
+be pushed from admin dashboard and will ingest all the driver 
+related informations into the tables driverride, customer and co_passengers.
+'''
 
 @api_view(['POST'])
 def form_upload_response(request):
@@ -302,17 +313,17 @@ def form_upload_response(request):
 
     return Response(response_data, status=status.HTTP_201_CREATED)
 
-
 '''
-So everytime I loop through ride_date_time field of the result
-of the below SQL query and validating each ride_date_time
-values in each row of users_ride_details table, 
-comparing them and then if they are equal then only updating the values
-in the table users_ride_details against the user_id.
+This API will be syncing the driver_info
+ and customer_ride_date_time info for all Private rides with the customerApp service.
 '''
 @api_view(['GET'])
 @cache_page(60 * 20)
 def get_upcoming_private_rides(request, driver_id):
+
+    '''
+    Caching all private rides info with the driverAppBackend for interval of 20 min.
+    '''
     cache_key = f'upcoming_private_rides_{driver_id}'
     cached_result = cache.get(cache_key)
     if cached_result:
@@ -406,10 +417,16 @@ ORDER BY
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)})
-
+'''
+This API will be syncing the driver_info
+ and customer_ride_date_time info for all Sharing rides with the customerApp service.
+'''
 @api_view(['GET'])
 @cache_page(60 * 20)
 def get_upcoming_sharing_rides(request, driver_id):
+    '''
+        Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
+    '''
     cache_key = f'upcoming_sharing_rides_{driver_id}'
     cached_result = cache.get(cache_key)
     if cached_result:
@@ -543,6 +560,10 @@ def update_customer_sharing_rides(customer_ride_id, driver_phone):
 @api_view(['POST'])
 def start_ride(request):
     pass
+@api_view(['POST'])
+def end_ride(request):
+    pass
+
 
 
 
