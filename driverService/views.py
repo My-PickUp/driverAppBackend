@@ -3,7 +3,7 @@ import json
 import random
 import requests
 from django.utils.timezone import make_aware
-from django.db import transaction
+from django.db.models import F
 import jwt
 from django.db import connections
 from django.views.decorators.cache import cache_page
@@ -215,6 +215,7 @@ def form_upload_response(request):
     reader = csv.DictReader(csv_file)
 
     ride_details = []
+
     for row in reader:
         ride_date_time = row.get('ride_date_time', '')
         driver_id = row.get('driver', '')
@@ -224,6 +225,9 @@ def form_upload_response(request):
         co_passenger = row.get('co_passenger', '') or None
         customer_ride_id = row.get('customer_ride_id', '')
         customer_ride_status = row.get('ride_status', '')
+        customer_name = row.get('customer_name', '')
+        customer_pickup_address = row.get('pickup_address', '')
+        customer_drop_address = row.get('drop_address', '')
 
         ride_details.append({
             "ride_date_time": ride_date_time,
@@ -235,7 +239,11 @@ def form_upload_response(request):
                     "drop_priority": drop_priority,
                     "co_passenger": co_passenger,
                     "customer_ride_id": customer_ride_id,
-                    "customer_ride_status":customer_ride_status
+                    "customer_ride_status":customer_ride_status,
+                    "customer_name":customer_name,
+                    "customer_pickup_address":customer_pickup_address,
+                    "customer_drop_address":customer_drop_address
+
                 }
             ]
         })
@@ -290,14 +298,19 @@ def form_upload_response(request):
                 co_passenger = customer_detail['co_passenger']
                 customer_ride_id = customer_detail.get('customer_ride_id', None)
                 customer_ride_status = customer_detail.get('customer_ride_status', None)
-
+                customer_name = customer_detail.get('customer_name', None)
+                customer_pickup_address = customer_detail.get('customer_pickup_address', None)
+                customer_drop_address = customer_detail.get('customer_drop_address', None)
 
                 customer_exists = Customer.objects.filter(
                     customer_id=customer_id,
                     driver=driver,
                     ride_date_time__date=ride_date_time.date(),
                     customer_ride_id=customer_ride_id,
-                    customer_ride_status = customer_ride_status
+                    customer_ride_status = customer_ride_status,
+                    name = customer_name,
+                    pickup_address = customer_pickup_address,
+                    drop_address = customer_drop_address
                 ).first()
 
                 copassenger_exists = Copassenger.objects.filter(
@@ -315,7 +328,10 @@ def form_upload_response(request):
                         driver=driver,
                         ride_date_time=ride_date_time,
                         customer_ride_id=customer_ride_id,
-                        customer_ride_status = customer_ride_status
+                        customer_ride_status = customer_ride_status,
+                        name= customer_name,
+                        pickup_address=customer_pickup_address,
+                        drop_address=customer_drop_address
                     )
 
                     if created or (drop_priority is not None and customer.drop_priority is None):
@@ -572,7 +588,21 @@ def update_customer_sharing_rides(customer_ride_id, driver_phone):
         print(json_response)
     except requests.exceptions.RequestException as e:
         print(f"Error updating customer sharing rides table: {e}")
+@api_view(['GET'])
+def fetch_customer_response(request):
 
+    queryset = Customer.objects.select_related('driver', 'driver__driverride').values(
+        driver_name_info= F('driver__name'),
+        driver_ride_type_info = F('driver__driverride__ride_type'),
+        driver_phone_info=F('driver__phone'),
+        customer_ride_datetime=F('ride_date_time'),
+        customer_id_info = F('customer_id'),
+        driver_id_info=F('driver_id'),
+        drop_priority_info=F('drop_priority'),
+        customer_ride_id_info=F('customer_ride_id')
+    )
+
+    return Response(queryset, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def start_ride(request, customer_ride_id, driver_id):

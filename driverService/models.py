@@ -29,10 +29,13 @@ class DriverRide(models.Model):
 
 class Customer(models.Model):
     id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255,blank=True,null=True)
     customer_id = models.IntegerField()
     customer_ride_id = models.IntegerField(null=True, blank=True)
     phone = models.CharField(max_length=12, blank=True, null=True)
     drop_priority = models.IntegerField(null=True, blank=True)
+    pickup_address = models.CharField(max_length=500,blank=True,null=True)
+    drop_address = models.CharField(max_length=500,blank=True,null=True)
     driver = models.ForeignKey(Driver,to_field='driver_id', on_delete=models.CASCADE)
     ride_date_time = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     customer_ride_status = models.CharField(max_length=20, choices=[("Upcoming", "Upcoming"), ("Ongoing", "Ongoing"),

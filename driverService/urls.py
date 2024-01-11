@@ -12,5 +12,6 @@ urlpatterns = [
     path('getPrivateRides/<int:driver_id>/', views.get_upcoming_private_rides, name='get-upcoming-private-rides'),
     path('getSharingRides/<int:driver_id>/', views.get_upcoming_sharing_rides, name='get-upcoming-sharing-rides'),
     path('startRide/', views.start_ride, name='start-ride'),
+    path('fetchCustomerResponse/', views.fetch_customer_response, name='fetch-customer-response'),
     path('awake/', views.awake, name='awake'),
 ]
