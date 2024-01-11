@@ -222,7 +222,8 @@ def form_upload_response(request):
         customer_id = row.get('customer_id', '')
         drop_priority = int(row.get('drop_priority', '')) if row.get('drop_priority', '') else None
         co_passenger = row.get('co_passenger', '') or None
-        customer_ride_id = row.get('customer_ride_id', '')  # Add this line
+        customer_ride_id = row.get('customer_ride_id', '')
+        customer_ride_status = row.get('ride_status', '')
 
         ride_details.append({
             "ride_date_time": ride_date_time,
@@ -233,7 +234,8 @@ def form_upload_response(request):
                     "customer_id": customer_id,
                     "drop_priority": drop_priority,
                     "co_passenger": co_passenger,
-                    "customer_ride_id": customer_ride_id  # Add this line
+                    "customer_ride_id": customer_ride_id,
+                    "customer_ride_status":customer_ride_status
                 }
             ]
         })
@@ -248,68 +250,83 @@ def form_upload_response(request):
         ride_type = ride_detail['ride_type']
         ride_date_time = make_aware(datetime.strptime(ride_detail['ride_date_time'], "%Y-%m-%d %H:%M:%S"))
 
-        print(f"Processing ride_detail: {ride_detail}")
+        for customers in ride_detail['customers']:
+            customer_id = customers['customer_id']
 
-        driver, created = Driver.objects.get_or_create(driver_id=driver_id)
+            print(f"Processing ride_detail: {ride_detail}")
 
-        existing_ride = DriverRide.objects.filter(
-            ride_type=ride_type,
-            ride_date_time=ride_date_time,
-            driver=driver,
-        ).first()
+            driver, created = Driver.objects.get_or_create(driver_id=driver_id)
 
-        ride = None
-
-        if existing_ride:
-            existing_ride.ride_date_time = ride_date_time
-            existing_ride.save()
-
-        else:
-            ride = DriverRide.objects.create(
+            existing_ride = DriverRide.objects.filter(
                 ride_type=ride_type,
                 ride_date_time=ride_date_time,
-                driver=driver
-            )
-
-        for customer_detail in ride_detail['customers']:
-            customer_id = customer_detail['customer_id']
-            drop_priority = customer_detail['drop_priority']
-            co_passenger = customer_detail['co_passenger']
-            customer_ride_id = customer_detail.get('customer_ride_id', None)
-
-            customer_exists = Customer.objects.filter(
-                customer_id=customer_id,
                 driver=driver,
-                ride_date_time__date=ride_date_time.date(),
-                customer_ride_id=customer_ride_id
+                customer_id = customer_id
             ).first()
 
-            copassenger_exists = Copassenger.objects.filter(
-                co_passenger__customer_id=customer_id,
-                ride=ride
-            ).exists()
+            ride = None
 
-            if customer_exists or copassenger_exists:
-                print("The records already exist in the system")
-                customer_exists.ride_date_time = ride_date_time
-                customer_exists.save()
-            else:
-                customer, created = Customer.objects.get_or_create(
-                    customer_id=customer_id,
-                    driver=driver,
+            if existing_ride and existing_ride.customer_id == customer_id:
+                existing_ride.ride_date_time = ride_date_time
+                existing_ride.save()
+
+
+            elif not existing_ride:
+
+                ride = DriverRide.objects.create(
+
+                    ride_type=ride_type,
+
                     ride_date_time=ride_date_time,
-                    customer_ride_id=customer_ride_id
+
+                    driver=driver,
+
+                    customer_id=customer_id
                 )
 
-                if created or (drop_priority is not None and customer.drop_priority is None):
-                    customer.drop_priority = drop_priority
-                    customer.save()
+            for customer_detail in ride_detail['customers']:
+                customer_id = customer_detail['customer_id']
+                drop_priority = customer_detail['drop_priority']
+                co_passenger = customer_detail['co_passenger']
+                customer_ride_id = customer_detail.get('customer_ride_id', None)
+                customer_ride_status = customer_detail.get('customer_ride_status', None)
 
-                    if co_passenger:
-                        co_passenger, created = Copassenger.objects.get_or_create(
-                            co_passenger=customer,
-                            ride=ride
-                        )
+
+                customer_exists = Customer.objects.filter(
+                    customer_id=customer_id,
+                    driver=driver,
+                    ride_date_time__date=ride_date_time.date(),
+                    customer_ride_id=customer_ride_id,
+                    customer_ride_status = customer_ride_status
+                ).first()
+
+                copassenger_exists = Copassenger.objects.filter(
+                    co_passenger__customer_id=customer_id,
+                    ride=ride
+                ).exists()
+
+                if customer_exists or copassenger_exists:
+                    print("The records already exist in the system")
+                    customer_exists.ride_date_time = ride_date_time
+                    customer_exists.save()
+                else:
+                    customer, created = Customer.objects.get_or_create(
+                        customer_id=customer_id,
+                        driver=driver,
+                        ride_date_time=ride_date_time,
+                        customer_ride_id=customer_ride_id,
+                        customer_ride_status = customer_ride_status
+                    )
+
+                    if created or (drop_priority is not None and customer.drop_priority is None):
+                        customer.drop_priority = drop_priority
+                        customer.save()
+
+                        if co_passenger:
+                            co_passenger, created = Copassenger.objects.get_or_create(
+                                co_passenger=customer,
+                                ride=ride
+                            )
 
     return Response(response_data, status=status.HTTP_201_CREATED)
 

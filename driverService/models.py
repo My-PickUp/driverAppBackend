@@ -21,6 +21,7 @@ class DriverVerificationCode(models.Model):
 
 class DriverRide(models.Model):
     ride_id = models.AutoField(primary_key = True)
+    customer_id = models.IntegerField(null=True, blank=True)
     ride_date_time = models.DateTimeField()
     driver = models.ForeignKey(Driver, to_field='driver_id',on_delete=models.CASCADE)
     ride_type = models.CharField(max_length=20, choices=[("Sharing", "Sharing"), ("Private", "Private")])
@@ -34,6 +35,9 @@ class Customer(models.Model):
     drop_priority = models.IntegerField(null=True, blank=True)
     driver = models.ForeignKey(Driver,to_field='driver_id', on_delete=models.CASCADE)
     ride_date_time = models.DateTimeField(auto_now_add=False, null=True, blank=True)
+    customer_ride_status = models.CharField(max_length=20, choices=[("Upcoming", "Upcoming"), ("Ongoing", "Ongoing"),
+                                                                    ("Cancelled", "Cancelled"), ("Completed", "Completed")], null=True, blank=True)
+
 
 class Copassenger(models.Model):
     co_passenger = models.ForeignKey(Customer, to_field='id', on_delete=models.CASCADE)
