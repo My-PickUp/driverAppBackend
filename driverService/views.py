@@ -1,13 +1,10 @@
 import csv
 import json
 import random
-from multiprocessing import Value
-import ctypes
 import requests
-from django.db.models.functions import Coalesce
-from django.forms import CharField, DateTimeField
+from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.timezone import make_aware
-from django.db.models import F, When, Q, ExpressionWrapper, Max
+from django.db.models import F, Q
 import jwt
 from django.db import connections, transaction
 from django.views.decorators.cache import cache_page
@@ -356,209 +353,209 @@ def form_upload_response(request):
 This API will be syncing the driver_info
  and customer_ride_date_time info for all Private rides with the customerApp service.
 '''
-@api_view(['GET'])
-@cache_page(60 * 20)
-def get_upcoming_private_rides(request, driver_id):
-
-    '''
-    Caching all private rides info with the driverAppBackend for interval of 20 min.
-    '''
-    cache_key = f'upcoming_private_rides_{driver_id}'
-    cached_result = cache.get(cache_key)
-    if cached_result:
-        return JsonResponse({"status": "success", "data": {"upcoming_private_rides": cached_result}})
-
-
-    try:
-        driver = get_object_or_404(Driver, driver_id=driver_id)
-
-        with connections['default'].cursor() as cursor:
-            query = """
-                    SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
-    driver.name as driver_name,
-    driver.phone as driver_phone,
-    usersInfo.phone_number AS user_phone,
-    usersInfo.name as user_name,
-    usersInfo.id AS user_id,
-    customer.ride_date_time,
-    customer.driver_id,
-    customer.drop_priority,
-    driverRide.ride_type,
-    customer.customer_ride_id as customer_ride_id,
-    userRides.ride_status,
-    userRides.drop_address_type,
-    userRides.drop_address,
-    userRides.pickup_address_type,
-    userRides.pickup_address,
-    driverRide.ride_id,
-    CASE
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
-        ELSE 'Unknown'
-    END AS day_of_week
-FROM
-    "driverService_customer" AS customer
-JOIN
-    "driverService_driverride" AS driverRide
-ON
-    customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
-JOIN
-    "driverService_driver" AS driver
-ON
-    driver.driver_id = driverRide.driver_id
-JOIN
-    users AS usersInfo
-ON
-    usersInfo.id = customer.customer_id
-JOIN
-    users_rides_detail AS userRides
-ON
-    usersInfo.id = userRides.user_id
-WHERE
-    userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = %s
-ORDER BY
-    customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
-                    """
-            cursor.execute(query, [driver_id])
-            rows = cursor.fetchall()
-
-            result = [
-                dict(zip([column[0] for column in cursor.description], row))
-                for row in rows
-            ]
-
-            pairs = []
-            for i in range(len(result)):
-                pair = [result[i]]
-                pairs.append(pair)
-
-            for pair in pairs:
-                for row in pair:
-                    # print(row)
-                    driver_phone = row['driver_phone']
-                    ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
-                    user_id = row['user_id']
-                    customer_ride_id = row['customer_ride_id']
-                    # print(driver_phone, ride_date_time, user_id, customer_ride_id)
-                    reschedule_ride(customer_ride_id, ride_date_time)
-                    update_customer_sharing_rides(customer_ride_id, driver_phone)
-                    cache.set(cache_key, result, timeout=300)
-
-            return JsonResponse({"status": "success", "data": {"upcoming_private_rides": pairs}})
-
-    except OperationalError as e:
-        return JsonResponse({"status": "error", "message": str(e)})
-
-    except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)})
+# @api_view(['GET'])
+# @cache_page(60 * 20)
+# def get_upcoming_private_rides(request, driver_id):
+#
+#     '''
+#     Caching all private rides info with the driverAppBackend for interval of 20 min.
+#     '''
+#     cache_key = f'upcoming_private_rides_{driver_id}'
+#     cached_result = cache.get(cache_key)
+#     if cached_result:
+#         return JsonResponse({"status": "success", "data": {"upcoming_private_rides": cached_result}})
+#
+#
+#     try:
+#         driver = get_object_or_404(Driver, driver_id=driver_id)
+#
+#         with connections['default'].cursor() as cursor:
+#             query = """
+#                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
+#     driver.name as driver_name,
+#     driver.phone as driver_phone,
+#     usersInfo.phone_number AS user_phone,
+#     usersInfo.name as user_name,
+#     usersInfo.id AS user_id,
+#     customer.ride_date_time,
+#     customer.driver_id,
+#     customer.drop_priority,
+#     driverRide.ride_type,
+#     customer.customer_ride_id as customer_ride_id,
+#     userRides.ride_status,
+#     userRides.drop_address_type,
+#     userRides.drop_address,
+#     userRides.pickup_address_type,
+#     userRides.pickup_address,
+#     driverRide.ride_id,
+#     CASE
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
+#         ELSE 'Unknown'
+#     END AS day_of_week
+# FROM
+#     "driverService_customer" AS customer
+# JOIN
+#     "driverService_driverride" AS driverRide
+# ON
+#     customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
+# JOIN
+#     "driverService_driver" AS driver
+# ON
+#     driver.driver_id = driverRide.driver_id
+# JOIN
+#     users AS usersInfo
+# ON
+#     usersInfo.id = customer.customer_id
+# JOIN
+#     users_rides_detail AS userRides
+# ON
+#     usersInfo.id = userRides.user_id
+# WHERE
+#     userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = %s
+# ORDER BY
+#     customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
+#                     """
+#             cursor.execute(query, [driver_id])
+#             rows = cursor.fetchall()
+#
+#             result = [
+#                 dict(zip([column[0] for column in cursor.description], row))
+#                 for row in rows
+#             ]
+#
+#             pairs = []
+#             for i in range(len(result)):
+#                 pair = [result[i]]
+#                 pairs.append(pair)
+#
+#             for pair in pairs:
+#                 for row in pair:
+#                     # print(row)
+#                     driver_phone = row['driver_phone']
+#                     ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
+#                     user_id = row['user_id']
+#                     customer_ride_id = row['customer_ride_id']
+#                     # print(driver_phone, ride_date_time, user_id, customer_ride_id)
+#                     reschedule_ride(customer_ride_id, ride_date_time)
+#                     update_customer_sharing_rides(customer_ride_id, driver_phone)
+#                     cache.set(cache_key, result, timeout=300)
+#
+#             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": pairs}})
+#
+#     except OperationalError as e:
+#         return JsonResponse({"status": "error", "message": str(e)})
+#
+#     except Exception as e:
+#         return JsonResponse({"status": "error", "message": str(e)})
 '''
 This API will be syncing the driver_info
  and customer_ride_date_time info for all Sharing rides with the customerApp service.
 '''
-@api_view(['GET'])
-@cache_page(60 * 20)
-def get_upcoming_sharing_rides(request, driver_id):
-    '''
-        Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
-    '''
-    cache_key = f'upcoming_sharing_rides_{driver_id}'
-    cached_result = cache.get(cache_key)
-    if cached_result:
-        return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": cached_result}})
-
-    try:
-        driver = Driver.objects.get(driver_id=driver_id)
-    except Driver.DoesNotExist:
-        return JsonResponse({"status": "error", "message": f"Driver with ID {driver_id} does not exist in the system"})
-
-    try:
-        with connections['default'].cursor() as cursor:
-            query = """
-                    SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
-    driver.name as driver_name,
-    driver.phone as driver_phone,
-    usersInfo.phone_number AS user_phone,
-    usersInfo.name as user_name,
-    usersInfo.id AS user_id,
-    customer.ride_date_time,
-    customer.driver_id,
-    customer.drop_priority,
-    driverRide.ride_type,
-    customer.customer_ride_id as customer_ride_id,
-    userRides.ride_status,
-    userRides.drop_address_type,
-    userRides.drop_address,
-    userRides.pickup_address_type,
-    userRides.pickup_address,
-    driverRide.ride_id,
-    CASE
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
-        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
-        ELSE 'Unknown'
-    END AS day_of_week
-FROM
-    "driverService_customer" AS customer
-JOIN
-    "driverService_driverride" AS driverRide
-ON
-    customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
-JOIN
-    "driverService_driver" AS driver
-ON
-    driver.driver_id = driverRide.driver_id
-JOIN
-    users AS usersInfo
-ON
-    usersInfo.id = customer.customer_id
-JOIN
-    users_rides_detail AS userRides
-ON
-    usersInfo.id = userRides.user_id
-WHERE
-    userRides.ride_status = 'Upcoming' AND ride_type = 'Sharing' AND driverRide.driver_id = %s
-ORDER BY
-    customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
-                    """
-            cursor.execute(query, [driver_id])
-            rows = cursor.fetchall()
-
-            result = [
-                dict(zip([column[0] for column in cursor.description], row))
-                for row in rows
-            ]
-
-            pairs = []
-            for i in range(0, len(result), 2):
-                if i + 1 < len(result):
-                    pair = [result[i], result[i + 1]]
-                    pairs.append(pair)
-
-            for pair in pairs:
-                for row in pair:
-                    #print(row)
-                    driver_phone = row['driver_phone']
-                    ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
-                    user_id = row['user_id']
-                    customer_ride_id = row['customer_ride_id']
-                    print(customer_ride_id, driver_phone)
-                    reschedule_ride(customer_ride_id, ride_date_time)
-                    update_customer_sharing_rides(customer_ride_id, driver_phone)
-                    cache.set(cache_key, result, timeout=300)
-
-            return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
-
-    except OperationalError as e:
-        return JsonResponse({"status": "error", "message": str(e)})
+# @api_view(['GET'])
+# @cache_page(60 * 20)
+# def get_upcoming_sharing_rides(request, driver_id):
+#     '''
+#         Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
+#     '''
+#     cache_key = f'upcoming_sharing_rides_{driver_id}'
+#     cached_result = cache.get(cache_key)
+#     if cached_result:
+#         return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": cached_result}})
+#
+#     try:
+#         driver = Driver.objects.get(driver_id=driver_id)
+#     except Driver.DoesNotExist:
+#         return JsonResponse({"status": "error", "message": f"Driver with ID {driver_id} does not exist in the system"})
+#
+#     try:
+#         with connections['default'].cursor() as cursor:
+#             query = """
+#                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
+#     driver.name as driver_name,
+#     driver.phone as driver_phone,
+#     usersInfo.phone_number AS user_phone,
+#     usersInfo.name as user_name,
+#     usersInfo.id AS user_id,
+#     customer.ride_date_time,
+#     customer.driver_id,
+#     customer.drop_priority,
+#     driverRide.ride_type,
+#     customer.customer_ride_id as customer_ride_id,
+#     userRides.ride_status,
+#     userRides.drop_address_type,
+#     userRides.drop_address,
+#     userRides.pickup_address_type,
+#     userRides.pickup_address,
+#     driverRide.ride_id,
+#     CASE
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
+#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
+#         ELSE 'Unknown'
+#     END AS day_of_week
+# FROM
+#     "driverService_customer" AS customer
+# JOIN
+#     "driverService_driverride" AS driverRide
+# ON
+#     customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
+# JOIN
+#     "driverService_driver" AS driver
+# ON
+#     driver.driver_id = driverRide.driver_id
+# JOIN
+#     users AS usersInfo
+# ON
+#     usersInfo.id = customer.customer_id
+# JOIN
+#     users_rides_detail AS userRides
+# ON
+#     usersInfo.id = userRides.user_id
+# WHERE
+#     userRides.ride_status = 'Upcoming' AND ride_type = 'Sharing' AND driverRide.driver_id = %s
+# ORDER BY
+#     customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
+#                     """
+#             cursor.execute(query, [driver_id])
+#             rows = cursor.fetchall()
+#
+#             result = [
+#                 dict(zip([column[0] for column in cursor.description], row))
+#                 for row in rows
+#             ]
+#
+#             pairs = []
+#             for i in range(0, len(result), 2):
+#                 if i + 1 < len(result):
+#                     pair = [result[i], result[i + 1]]
+#                     pairs.append(pair)
+#
+#             for pair in pairs:
+#                 for row in pair:
+#                     #print(row)
+#                     driver_phone = row['driver_phone']
+#                     ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
+#                     user_id = row['user_id']
+#                     customer_ride_id = row['customer_ride_id']
+#                     print(customer_ride_id, driver_phone)
+#                     #reschedule_ride(customer_ride_id, ride_date_time)
+#                     #update_customer_sharing_rides(customer_ride_id, driver_phone)
+#                     cache.set(cache_key, result, timeout=300)
+#
+#             return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
+#
+#     except OperationalError as e:
+#         return JsonResponse({"status": "error", "message": str(e)})
 
 def reschedule_ride(customer_ride_id, ride_date_time):
 
@@ -589,7 +586,10 @@ def update_customer_sharing_rides(customer_ride_id, driver_phone):
 
     try:
         response = requests.put(update_url)
-        response.raise_for_status()  # Raises HTTPError for bad responses
+        '''
+        Raise HTTPError for bad responses.
+        '''
+        response.raise_for_status()
         json_response = response.json()
         print(json_response)
     except requests.exceptions.RequestException as e:
@@ -618,7 +618,7 @@ def start_private_ride(request):
             Call the helper function to update the customerApp's users_rides_detail table
             by updating the ride-status as Ongoing.
             '''
-            update_result = update_customer_app_ride_status(customer_ride_id, 'Ongoing')
+            update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Ongoing')
             print(update_result)
 
             if update_result.get('status_code') == 200:
@@ -638,14 +638,23 @@ def start_private_ride(request):
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['GET'])
-def fetch_private_customer_rides(request):
+@cache_page(60 * 20)
+def fetch_private_customer_rides(request, driver_id):
+    '''
+            Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
+    '''
+    cache_key = f'private_customer_rides_{driver_id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return JsonResponse({"status": "success", "data": {"private_customer_rides_": cached_result}})
 
     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
-        Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming')
+        Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
         customer_id_info=F('customer_id'),
         customer_ride_datetime=F('ride_date_time'),
+        driver_phone_info=F('driver__phone'),
         driver_id_info=F('driver_id'),
         customer_drop_priority_info=F('drop_priority'),
         driver_ride_type_info=F('driver__driverride__ride_type'),
@@ -664,14 +673,63 @@ def fetch_private_customer_rides(request):
         pair = [private_queryset[i]]
         pairs.append(pair)
 
+        customer_ride_id_info = private_queryset[i]['customer_ride_id_info']
+        customer_ride_datetime = private_queryset[i]['customer_ride_datetime']
+        driver_phone = private_queryset[i]['driver_phone_info']
+
+        customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+
+        reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
+        update_customer_sharing_rides(customer_ride_id_info, driver_phone)
+        cache.set(cache_key, pairs, timeout=300)
+
     return Response(pairs, status=status.HTTP_200_OK)
 @api_view(['POST'])
 def start_sharing_ride(request):
-    pass
+
+    try:
+        customer_ride_id = request.data.get('customer_ride_id')
+        driver_id = request.data.get('driver_id')
+
+        with transaction.atomic():
+            valid_ride = Customer.objects.select_for_update().filter(
+                customer_ride_id=customer_ride_id,
+                driver_id=driver_id,
+                customer_ride_status='Upcoming',
+                driver__driverride__ride_type='Sharing'
+            ).first()
+
+            if not valid_ride:
+                return Response({"status": "error", "message": "Invalid customer_ride_id or driver_id"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            '''
+            Call the helper function to update the customerApp's users_rides_detail table
+            by updating the ride-status as Ongoing.
+            '''
+            update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Ongoing')
+            print(update_result)
+
+            if update_result.get('status_code') == 200:
+                '''
+                If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
+                '''
+                valid_ride.customer_ride_status = 'Ongoing'
+                valid_ride.save()
+
+                return Response({"status": "success", "message": "Ride started successfully"}, status=status.HTTP_200_OK)
+            else:
+                '''
+                If the update fails, return an error response.
+                '''
+                return Response({"status": "error", "message": "Failed to update customer app ride status"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['GET'])
-def fetch_sharing_customer_rides(request):
+def fetch_sharing_customer_rides(request, driver_id):
     sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming')
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
         customer_id_info=F('customer_id'),
@@ -679,6 +737,7 @@ def fetch_sharing_customer_rides(request):
         driver_id_info=F('driver_id'),
         customer_drop_priority_info=F('drop_priority'),
         driver_ride_type_info=F('driver__driverride__ride_type'),
+        driver_phone_info= F('driver__phone'),
         customer_ride_id_info=F('customer_ride_id'),
         customer_ride_status_info=F('customer_ride_status'),
         customer_pickup_address_info=F('pickup_address'),
@@ -691,15 +750,101 @@ def fetch_sharing_customer_rides(request):
             pair = [sharing_queryset[i], sharing_queryset[i + 1]]
             pairs.append(pair)
 
+            customer_ride_id_info = sharing_queryset[i]['customer_ride_id_info']
+            customer_ride_datetime = sharing_queryset[i]['customer_ride_datetime']
+            driver_phone = sharing_queryset[i]['driver_phone_info']
+
+            customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+
+            reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
+            update_customer_sharing_rides(customer_ride_id_info, driver_phone)
+
     return Response(pairs, status=status.HTTP_200_OK)
 @api_view(['POST'])
 def end_private_ride(request):
-    pass
+    try:
+        customer_ride_id = request.data.get('customer_ride_id')
+        driver_id = request.data.get('driver_id')
+
+        with transaction.atomic():
+            valid_ride = Customer.objects.select_for_update().filter(
+                customer_ride_id=customer_ride_id,
+                driver_id=driver_id,
+                customer_ride_status='Ongoing',
+                driver__driverride__ride_type='Private'
+            ).first()
+
+            if not valid_ride:
+                return Response({"status": "error", "message": "Invalid customer_ride_id or driver_id"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            '''
+            Call the helper function to update the customerApp's users_rides_detail table
+            by updating the ride-status as Ongoing.
+            '''
+            update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
+            print(update_result)
+
+            if update_result.get('status_code') == 200:
+                '''
+                If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
+                '''
+                valid_ride.customer_ride_status = 'Completed'
+                valid_ride.save()
+
+                return Response({"status": "success", "message": "Ride started successfully"}, status=status.HTTP_200_OK)
+            else:
+                '''
+                If the update fails, return an error response.
+                '''
+                return Response({"status": "error", "message": "Failed to update customer app ride status"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['POST'])
 def end_sharing_ride(request):
-    pass
+    try:
+        customer_ride_id = request.data.get('customer_ride_id')
+        driver_id = request.data.get('driver_id')
 
-def update_customer_app_ride_status(ride_id, new_status):
+        with transaction.atomic():
+            valid_ride = Customer.objects.select_for_update().filter(
+                customer_ride_id=customer_ride_id,
+                driver_id=driver_id,
+                customer_ride_status='Ongoing',
+                driver__driverride__ride_type='Sharing'
+            ).first()
+
+            if not valid_ride:
+                return Response({"status": "error", "message": "Invalid customer_ride_id or driver_id"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            '''
+            Call the helper function to update the customerApp's users_rides_detail table
+            by updating the ride-status as Ongoing.
+            '''
+            update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
+            print(update_result)
+
+            if update_result.get('status_code') == 200:
+                '''
+                If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
+                '''
+                valid_ride.customer_ride_status = 'Completed'
+                valid_ride.save()
+
+                return Response({"status": "success", "message": "Ride started successfully"},
+                                status=status.HTTP_200_OK)
+            else:
+                '''
+                If the update fails, return an error response.
+                '''
+                return Response({"status": "error", "message": "Failed to update customer app ride status"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def map_driver_customer_app_ride_status(ride_id, new_status):
 
     url = f'https://fast-o4qh.onrender.com/updateRideStatus?ride_id={ride_id}'
     headers = {
@@ -731,6 +876,8 @@ def update_customer_app_ride_status(ride_id, new_status):
             "message": str(e),
         }
         return result
+
+
 
 
 
