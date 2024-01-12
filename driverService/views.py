@@ -16,6 +16,7 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from .serializers import CancelRideSerializer
 
 from driverService import models
 from driverService.models import Driver, Customer, DriverVerificationCode, DriverRide, Copassenger
@@ -637,6 +638,8 @@ def start_private_ride(request):
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['GET'])
 @cache_page(60 * 20)
 def fetch_private_customer_rides(request, driver_id):
@@ -880,13 +883,38 @@ def map_driver_customer_app_ride_status(ride_id, new_status):
         }
         return result
     except requests.exceptions.RequestException as e:
-        # Include the status code in the response dictionary
+        '''
+        Include the status code in the response dictionary.
+        '''
         result = {
             "status": "error",
             "status_code": getattr(e.response, 'status_code', None),
             "message": str(e),
         }
         return result
+
+
+@api_view(['POST'])
+def cancel_customer_ride(request):
+    serializer = CancelRideSerializer(data=request.data)
+    if serializer.is_valid():
+        customer_ride_id = serializer.validated_data['customer_ride_id']
+        customers = Customer.objects.filter(customer_ride_id=customer_ride_id)
+
+        if customers.exists():
+            '''
+            To cancel all rides with the given ID.
+            '''
+            for customer in customers:
+                customer.customer_ride_status = 'Cancelled'
+                customer.save()
+
+            return Response({'status': 'Rides Cancelled'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'No customers found with the specified ride_id'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 

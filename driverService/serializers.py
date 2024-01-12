@@ -6,6 +6,9 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = '__all__'
 
+class CancelRideSerializer(serializers.Serializer):
+    customer_ride_id = serializers.IntegerField()
+
 class DriverSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
