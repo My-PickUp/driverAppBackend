@@ -1,11 +1,15 @@
 import csv
 import json
 import random
+from multiprocessing import Value
+import ctypes
 import requests
+from django.db.models.functions import Coalesce
+from django.forms import CharField, DateTimeField
 from django.utils.timezone import make_aware
-from django.db.models import F
+from django.db.models import F, When, Q, ExpressionWrapper, Max
 import jwt
-from django.db import connections
+from django.db import connections, transaction
 from django.views.decorators.cache import cache_page
 from rest_framework.views import APIView
 from django.db.utils import OperationalError, IntegrityError
@@ -15,6 +19,9 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from sqlalchemy import Case
+
+from driverService import models
 from driverService.models import Driver, Customer, DriverVerificationCode, DriverRide, Copassenger
 from driverService.serializers import DriverSerializer, DriverVerificationCodeSerializer, DriverRideSerializer, CustomerSerializer, CopassengerSerializer
 from django_ratelimit.decorators import ratelimit
@@ -588,32 +595,143 @@ def update_customer_sharing_rides(customer_ride_id, driver_phone):
         print(json_response)
     except requests.exceptions.RequestException as e:
         print(f"Error updating customer sharing rides table: {e}")
+
+@api_view(['POST'])
+def start_private_ride(request):
+
+    try:
+        customer_ride_id = request.data.get('customer_ride_id')
+        driver_id = request.data.get('driver_id')
+
+        with transaction.atomic():
+            valid_ride = Customer.objects.select_for_update().filter(
+                customer_ride_id=customer_ride_id,
+                driver_id=driver_id,
+                customer_ride_status='Upcoming',
+                driver__driverride__ride_type='Private'
+            ).first()
+
+            if not valid_ride:
+                return Response({"status": "error", "message": "Invalid customer_ride_id or driver_id"},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            '''
+            Call the helper function to update the customerApp's users_rides_detail table
+            by updating the ride-status as Ongoing.
+            '''
+            update_result = update_customer_app_ride_status(customer_ride_id, 'Ongoing')
+            print(update_result)
+
+            if update_result.get('status_code') == 200:
+                '''
+                If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
+                '''
+                valid_ride.customer_ride_status = 'Ongoing'
+                valid_ride.save()
+
+                return Response({"status": "success", "message": "Ride started successfully"}, status=status.HTTP_200_OK)
+            else:
+                '''
+                If the update fails, return an error response.
+                '''
+                return Response({"status": "error", "message": "Failed to update customer app ride status"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['GET'])
-def fetch_customer_response(request):
+def fetch_private_customer_rides(request):
 
-    queryset = Customer.objects.select_related('driver', 'driver__driverride').values(
-        driver_name_info= F('driver__name'),
-        driver_ride_type_info = F('driver__driverride__ride_type'),
-        driver_phone_info=F('driver__phone'),
+    private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+        Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming')
+    ).values(
+        customer_name_info=F('name'),
+        customer_id_info=F('customer_id'),
         customer_ride_datetime=F('ride_date_time'),
-        customer_id_info = F('customer_id'),
         driver_id_info=F('driver_id'),
-        drop_priority_info=F('drop_priority'),
-        customer_ride_id_info=F('customer_ride_id')
-    )
+        customer_drop_priority_info=F('drop_priority'),
+        driver_ride_type_info=F('driver__driverride__ride_type'),
+        customer_ride_id_info=F('customer_ride_id'),
+        customer_ride_status_info=F('customer_ride_status'),
+        customer_pickup_address_info=F('pickup_address'),
+        customer_drop_address_info=F('drop_address'),
+    ).order_by('ride_date_time').distinct()
 
-    return Response(queryset, status=status.HTTP_200_OK)
+    '''
+    Appended each private_rides in each Nested lists.
+    '''
 
+    pairs = []
+    for i in range(len(private_queryset)):
+        pair = [private_queryset[i]]
+        pairs.append(pair)
+
+    return Response(pairs, status=status.HTTP_200_OK)
 @api_view(['POST'])
-def start_ride(request, customer_ride_id, driver_id):
+def start_sharing_ride(request):
+    pass
+@api_view(['GET'])
+def fetch_sharing_customer_rides(request):
+    sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming')
+    ).values(
+        customer_name_info=F('name'),
+        customer_id_info=F('customer_id'),
+        customer_ride_datetime=F('ride_date_time'),
+        driver_id_info=F('driver_id'),
+        customer_drop_priority_info=F('drop_priority'),
+        driver_ride_type_info=F('driver__driverride__ride_type'),
+        customer_ride_id_info=F('customer_ride_id'),
+        customer_ride_status_info=F('customer_ride_status'),
+        customer_pickup_address_info=F('pickup_address'),
+        customer_drop_address_info=F('drop_address'),
+    ).order_by('ride_date_time').distinct()
+
+    pairs = []
+    for i in range(0, len(sharing_queryset), 2):
+        if i + 1 < len(sharing_queryset):
+            pair = [sharing_queryset[i], sharing_queryset[i + 1]]
+            pairs.append(pair)
+
+    return Response(pairs, status=status.HTTP_200_OK)
+@api_view(['POST'])
+def end_private_ride(request):
     pass
 @api_view(['POST'])
-def end_ride(request, customer_ride_id, driver_id):
+def end_sharing_ride(request):
     pass
 
+def update_customer_app_ride_status(ride_id, new_status):
 
+    url = f'https://fast-o4qh.onrender.com/updateRideStatus?ride_id={ride_id}'
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+    }
+    data = {
+        'newStatus': new_status,
+    }
 
+    try:
+        response = requests.put(url, headers=headers, json=data)
+        response.raise_for_status()
 
+        '''
+        Including the status code in the response dictionary.
+        '''
+        result = {
+            "status": "success",
+            "status_code": response.status_code,
+            "data": response.json()
+        }
+        return result
+    except requests.exceptions.RequestException as e:
+        # Include the status code in the response dictionary
+        result = {
+            "status": "error",
+            "status_code": getattr(e.response, 'status_code', None),
+            "message": str(e),
+        }
+        return result
 
 
 

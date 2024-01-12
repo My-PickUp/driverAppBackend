@@ -11,7 +11,8 @@ urlpatterns = [
     path('rideDetailsUpload/', views.form_upload_response, name='ride-details-upload'),
     path('getPrivateRides/<int:driver_id>/', views.get_upcoming_private_rides, name='get-upcoming-private-rides'),
     path('getSharingRides/<int:driver_id>/', views.get_upcoming_sharing_rides, name='get-upcoming-sharing-rides'),
-    path('startRide/', views.start_ride, name='start-ride'),
-    path('fetchCustomerResponse/', views.fetch_customer_response, name='fetch-customer-response'),
+    path('startPrivateRide/', views.start_private_ride, name='start-private-ride'),
+    path('fetchPrivateCustomers/', views.fetch_private_customer_rides, name='fetch-private-customers'),
+    path('fetchSharingCustomers/', views.fetch_sharing_customer_rides, name='fetch-sharing-customers'),
     path('awake/', views.awake, name='awake'),
 ]
