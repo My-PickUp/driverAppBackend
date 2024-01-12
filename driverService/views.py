@@ -19,7 +19,6 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from sqlalchemy import Case
 
 from driverService import models
 from driverService.models import Driver, Customer, DriverVerificationCode, DriverRide, Copassenger
