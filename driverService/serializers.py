@@ -30,6 +30,13 @@ class CopassengerSerializer(serializers.ModelSerializer):
         model = Copassenger
         fields = '__all__'
 
+class RescheduleRideSerializer(serializers.Serializer):
+
+    customer_ride_id = serializers.IntegerField()
+    ride_date_time = serializers.DateTimeField()
+
+
+
 
 
 

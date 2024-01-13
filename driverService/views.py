@@ -16,7 +16,7 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from .serializers import CancelRideSerializer
+from .serializers import CancelRideSerializer, RescheduleRideSerializer
 
 from driverService import models
 from driverService.models import Driver, Customer, DriverVerificationCode, DriverRide, Copassenger
@@ -639,7 +639,6 @@ def start_private_ride(request):
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @api_view(['GET'])
 @cache_page(60 * 20)
 def fetch_private_customer_rides(request, driver_id):
@@ -917,9 +916,21 @@ def cancel_customer_ride(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['POST'])
+def reschedule_customer_ride(request):
+    serializer = RescheduleRideSerializer(data=request.data)
+    if serializer.is_valid():
+        customer_ride_id = serializer.validated_data['customer_ride_id']
+        new_datetime = serializer.validated_data['ride_date_time']
+        customers = Customer.objects.filter(customer_ride_id=customer_ride_id)
 
+        if customers.exists():
+            for customer in customers:
+                customer.ride_date_time = new_datetime
+                customer.save()
 
+        return Response({'status': 'Ride Rescheduled'}, status=status.HTTP_200_OK)
+    else:
+        return Response({'error': 'Customer with specified ride_id not found'}, status=status.HTTP_404_NOT_FOUND)
 
-
-
-
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

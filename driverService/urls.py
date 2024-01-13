@@ -12,6 +12,7 @@ urlpatterns = [
     path('getPrivateRides/<int:driver_id>/', views.get_upcoming_private_rides, name='get-upcoming-private-rides'),
     path('getSharingRides/<int:driver_id>/', views.get_upcoming_sharing_rides, name='get-upcoming-sharing-rides'),
     path('cancelCustomerRide/', views.cancel_customer_ride, name='cancel-customer-ride'),
+    path('customerRideReschedule/', views.reschedule_customer_ride, name='reschedule-customer-ride'),
     path('startPrivateRide/', views.start_private_ride, name='start-private-ride'),
     path('fetchPrivateCustomers/<int:driver_id>/', views.fetch_private_customer_rides, name='fetch-private-customers'),
     path('fetchSharingCustomers/<int:driver_id>/', views.fetch_sharing_customer_rides, name='fetch-sharing-customers'),
