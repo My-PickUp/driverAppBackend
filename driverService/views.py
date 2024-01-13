@@ -937,8 +937,10 @@ def reschedule_customer_ride(request):
 @api_view(['GET'])
 def fetch_all_ongoing_customer_rides(request, driver_id):
 
-    private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+    ongoing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Ongoing',
+          driver_id=driver_id) |
+        Q(drop_priority__isnull=True, driver__driverride__ride_type='Sharing', customer_ride_status='Ongoing',
           driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
@@ -954,7 +956,12 @@ def fetch_all_ongoing_customer_rides(request, driver_id):
         customer_drop_address_info=F('drop_address'),
     ).order_by('ride_date_time').distinct()
 
-    return Response(private_queryset, status=status.HTTP_200_OK)
+    pairs = []
+    for i in range(len(ongoing_queryset)):
+        pair = [ongoing_queryset[i]]
+        pairs.append(pair)
+
+    return Response(pairs, status=status.HTTP_200_OK)
 
 
 
