@@ -168,6 +168,7 @@ def get_customer_details(request):
         ELSE 'Unknown Day'
     END AS day_of_week,
     users.id AS customer_id,
+    users.phone_number AS customer_phone,
     users.name AS customer_name,
     users_rides_detail.id AS customer_ride_id,
     users_rides_detail.pickup_address_type,
@@ -355,7 +356,7 @@ This API will be syncing the driver_info
  and customer_ride_date_time info for all Private rides with the customerApp service.
 '''
 @api_view(['GET'])
-@cache_page(60 * 5)
+@cache_page(60 * 20)
 def get_upcoming_private_rides(request, driver_id):
 
     '''
@@ -470,7 +471,7 @@ This API will be syncing the driver_info
  and customer_ride_date_time info for all Sharing rides with the customerApp service.
 '''
 @api_view(['GET'])
-@cache_page(60 * 5)
+@cache_page(60 * 20)
 def get_upcoming_sharing_rides(request, driver_id):
     '''
         Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
