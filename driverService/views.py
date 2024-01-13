@@ -915,7 +915,6 @@ def cancel_customer_ride(request):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['POST'])
 def reschedule_customer_ride(request):
     serializer = RescheduleRideSerializer(data=request.data)
@@ -934,3 +933,28 @@ def reschedule_customer_ride(request):
         return Response({'error': 'Customer with specified ride_id not found'}, status=status.HTTP_404_NOT_FOUND)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def fetch_all_ongoing_customer_rides(request, driver_id):
+
+    private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+        Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Ongoing',
+          driver_id=driver_id)
+    ).values(
+        customer_name_info=F('name'),
+        customer_id_info=F('customer_id'),
+        customer_ride_datetime=F('ride_date_time'),
+        driver_phone_info=F('driver__phone'),
+        driver_id_info=F('driver_id'),
+        customer_drop_priority_info=F('drop_priority'),
+        driver_ride_type_info=F('driver__driverride__ride_type'),
+        customer_ride_id_info=F('customer_ride_id'),
+        customer_ride_status_info=F('customer_ride_status'),
+        customer_pickup_address_info=F('pickup_address'),
+        customer_drop_address_info=F('drop_address'),
+    ).order_by('ride_date_time').distinct()
+
+    return Response(private_queryset, status=status.HTTP_200_OK)
+
+
+

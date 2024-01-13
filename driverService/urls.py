@@ -16,5 +16,6 @@ urlpatterns = [
     path('startPrivateRide/', views.start_private_ride, name='start-private-ride'),
     path('fetchPrivateCustomers/<int:driver_id>/', views.fetch_private_customer_rides, name='fetch-private-customers'),
     path('fetchSharingCustomers/<int:driver_id>/', views.fetch_sharing_customer_rides, name='fetch-sharing-customers'),
+    path('fetchOngoingCustomers/<int:driver_id>/', views.fetch_all_ongoing_customer_rides, name='fetch-all-ongoing-customer-rides'),
     path('awake/', views.awake, name='awake'),
 ]
