@@ -805,7 +805,7 @@ def end_private_ride(request):
                 valid_ride.customer_ride_status = 'Completed'
                 valid_ride.save()
 
-                return Response({"status": "success", "message": "Ride started successfully"}, status=status.HTTP_200_OK)
+                return Response({"status": "success", "message": "Ride ended successfully"}, status=status.HTTP_200_OK)
             else:
                 '''
                 If the update fails, return an error response.
@@ -846,7 +846,7 @@ def end_sharing_ride(request):
                 valid_ride.customer_ride_status = 'Completed'
                 valid_ride.save()
 
-                return Response({"status": "success", "message": "Ride started successfully"},
+                return Response({"status": "success", "message": "Ride ended successfully"},
                                 status=status.HTTP_200_OK)
             else:
                 '''
