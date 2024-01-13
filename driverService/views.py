@@ -355,7 +355,7 @@ This API will be syncing the driver_info
  and customer_ride_date_time info for all Private rides with the customerApp service.
 '''
 @api_view(['GET'])
-@cache_page(60 * 20)
+@cache_page(60 * 5)
 def get_upcoming_private_rides(request, driver_id):
 
     '''
@@ -373,16 +373,16 @@ def get_upcoming_private_rides(request, driver_id):
         with connections['default'].cursor() as cursor:
             query = """
                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
-    driver.name as driver_name,
-    driver.phone as driver_phone,
+    driver.name AS driver_name,
+    driver.phone AS driver_phone,
     usersInfo.phone_number AS user_phone,
-    usersInfo.name as user_name,
+    usersInfo.name AS user_name,
     usersInfo.id AS user_id,
     customer.ride_date_time,
     customer.driver_id,
     customer.drop_priority,
     driverRide.ride_type,
-    customer.customer_ride_id as customer_ride_id,
+    customer.customer_ride_id AS customer_ride_id,
     userRides.ride_status,
     userRides.drop_address_type,
     userRides.drop_address,
@@ -418,9 +418,20 @@ JOIN
 ON
     usersInfo.id = userRides.user_id
 WHERE
-    userRides.ride_status = 'Upcoming' AND ride_type = 'Private' AND driverRide.driver_id = %s
+    userRides.ride_status = 'Upcoming'
+    AND ride_type = 'Private'
+    AND driverRide.driver_id = %s
+    AND NOT EXISTS (
+        SELECT 1
+        FROM "driverService_customer" AS ongoing_customer
+        WHERE
+            ongoing_customer.customer_ride_id = customer.customer_ride_id
+            AND ongoing_customer.customer_ride_status = 'Ongoing'
+    )
 ORDER BY
-    customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.ride_date_time DESC;
                     """
             cursor.execute(query, [driver_id])
             rows = cursor.fetchall()
@@ -459,7 +470,7 @@ This API will be syncing the driver_info
  and customer_ride_date_time info for all Sharing rides with the customerApp service.
 '''
 @api_view(['GET'])
-@cache_page(60 * 20)
+@cache_page(60 * 5)
 def get_upcoming_sharing_rides(request, driver_id):
     '''
         Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
@@ -478,16 +489,16 @@ def get_upcoming_sharing_rides(request, driver_id):
         with connections['default'].cursor() as cursor:
             query = """
                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
-    driver.name as driver_name,
-    driver.phone as driver_phone,
+    driver.name AS driver_name,
+    driver.phone AS driver_phone,
     usersInfo.phone_number AS user_phone,
-    usersInfo.name as user_name,
+    usersInfo.name AS user_name,
     usersInfo.id AS user_id,
     customer.ride_date_time,
     customer.driver_id,
     customer.drop_priority,
     driverRide.ride_type,
-    customer.customer_ride_id as customer_ride_id,
+    customer.customer_ride_id AS customer_ride_id,
     userRides.ride_status,
     userRides.drop_address_type,
     userRides.drop_address,
@@ -523,9 +534,20 @@ JOIN
 ON
     usersInfo.id = userRides.user_id
 WHERE
-    userRides.ride_status = 'Upcoming' AND ride_type = 'Sharing' AND driverRide.driver_id = %s
+    userRides.ride_status = 'Upcoming'
+    AND ride_type = 'Sharing'
+    AND driverRide.driver_id = %s
+    AND NOT EXISTS (
+        SELECT 1
+        FROM "driverService_customer" AS ongoing_customer
+        WHERE
+            ongoing_customer.customer_ride_id = customer.customer_ride_id
+            AND ongoing_customer.customer_ride_status = 'Ongoing'
+    )
 ORDER BY
-    customer.ride_date_time, customer.driver_id, customer.ride_date_time DESC;
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.ride_date_time DESC;
                     """
             cursor.execute(query, [driver_id])
             rows = cursor.fetchall()
