@@ -668,7 +668,15 @@ def start_private_ride(request):
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
+@cache_page(60 * 2)
 def fetch_private_customer_rides(request, driver_id):
+    '''
+                Caching all private rides info with the driverAppBackend for interval of 2 min.
+        '''
+    cache_key = f'private_customer_rides_{driver_id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return JsonResponse({"status": "success", "data": {"private_customer_rides_": cached_result}})
 
     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
@@ -704,6 +712,7 @@ def fetch_private_customer_rides(request, driver_id):
 
         reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
         update_customer_sharing_rides(customer_ride_id_info, driver_phone)
+        cache.set(cache_key, pairs, timeout=300)
 
     return Response(pairs, status=status.HTTP_200_OK)
 @api_view(['POST'])
@@ -750,7 +759,15 @@ def start_sharing_ride(request):
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
+@cache_page(60 * 2)
 def fetch_sharing_customer_rides(request, driver_id):
+    '''
+        Caching all sharing rides info with the driverAppBackend for interval of 2 min.
+        '''
+    cache_key = f'sharing_customer_rides_{driver_id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return JsonResponse({"status": "success", "data": {"sharing_customer_rides": cached_result}})
 
     sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id) |
@@ -784,6 +801,7 @@ def fetch_sharing_customer_rides(request, driver_id):
 
             reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
             update_customer_sharing_rides(customer_ride_id_info, driver_phone)
+            cache.set(cache_key, pairs, timeout=300)
 
     return Response(pairs, status=status.HTTP_200_OK)
 
