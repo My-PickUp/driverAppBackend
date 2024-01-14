@@ -999,7 +999,7 @@ def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
 
     excluded_pairs = []
 
-    url = f"http://127.0.0.1:8000/api/fetchSharingCustomers/{driver_id}/"
+    url = f"https://driverappbackend.onrender.com/api/fetchSharingCustomers/{driver_id}/"
     getPairsOfSharingRides = requests.request("GET", url)
     data = getPairsOfSharingRides.json()
 
