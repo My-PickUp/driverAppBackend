@@ -233,6 +233,7 @@ def form_upload_response(request):
         customer_name = row.get('customer_name', '')
         customer_pickup_address = row.get('pickup_address', '')
         customer_drop_address = row.get('drop_address', '')
+        customer_phone = row.get('customer_phone', '')
 
         ride_details.append({
             "ride_date_time": ride_date_time,
@@ -247,7 +248,8 @@ def form_upload_response(request):
                     "customer_ride_status":customer_ride_status,
                     "customer_name":customer_name,
                     "customer_pickup_address":customer_pickup_address,
-                    "customer_drop_address":customer_drop_address
+                    "customer_drop_address":customer_drop_address,
+                    "customer_phone": customer_phone
 
                 }
             ]
@@ -306,6 +308,7 @@ def form_upload_response(request):
                 customer_name = customer_detail.get('customer_name', None)
                 customer_pickup_address = customer_detail.get('customer_pickup_address', None)
                 customer_drop_address = customer_detail.get('customer_drop_address', None)
+                customer_phone = customer_detail.get('customer_phone', None)
 
                 customer_exists = Customer.objects.filter(
                     customer_id=customer_id,
@@ -314,6 +317,7 @@ def form_upload_response(request):
                     customer_ride_id=customer_ride_id,
                     customer_ride_status = customer_ride_status,
                     name = customer_name,
+                    phone = customer_phone,
                     pickup_address = customer_pickup_address,
                     drop_address = customer_drop_address
                 ).first()
@@ -335,6 +339,7 @@ def form_upload_response(request):
                         customer_ride_id=customer_ride_id,
                         customer_ride_status = customer_ride_status,
                         name= customer_name,
+                        phone = customer_phone,
                         pickup_address=customer_pickup_address,
                         drop_address=customer_drop_address
                     )
@@ -663,21 +668,14 @@ def start_private_ride(request):
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@cache_page(60 * 20)
 def fetch_private_customer_rides(request, driver_id):
-    '''
-            Caching all private rides info with the driverAppBackend for interval of 20 min.
-    '''
-    cache_key = f'private_customer_rides_{driver_id}'
-    cached_result = cache.get(cache_key)
-    if cached_result:
-        return JsonResponse({"status": "success", "data": {"private_customer_rides_": cached_result}})
 
     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
         customer_id_info=F('customer_id'),
+        customer_phone_info=F('phone'),
         customer_ride_datetime=F('ride_date_time'),
         driver_phone_info=F('driver__phone'),
         driver_id_info=F('driver_id'),
@@ -706,7 +704,6 @@ def fetch_private_customer_rides(request, driver_id):
 
         reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
         update_customer_sharing_rides(customer_ride_id_info, driver_phone)
-        cache.set(cache_key, pairs, timeout=300)
 
     return Response(pairs, status=status.HTTP_200_OK)
 @api_view(['POST'])
@@ -751,23 +748,17 @@ def start_sharing_ride(request):
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-@api_view(['GET'])
-@cache_page(60 * 20)
-def fetch_sharing_customer_rides(request, driver_id):
-    '''
-    Caching all sharing rides info with the driverAppBackend for interval of 20 min.
-    '''
-    cache_key = f'sharing_customer_rides_{driver_id}'
-    cached_result = cache.get(cache_key)
-    if cached_result:
-        return JsonResponse({"status": "success", "data": {"sharing_customer_rides": cached_result}})
 
+@api_view(['GET'])
+def fetch_sharing_customer_rides(request, driver_id):
 
     sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id)
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id) |
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Ongoing', driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
         customer_id_info=F('customer_id'),
+        customer_phone_info=F('phone'),
         customer_ride_datetime=F('ride_date_time'),
         driver_id_info=F('driver_id'),
         customer_drop_priority_info=F('drop_priority'),
@@ -793,9 +784,9 @@ def fetch_sharing_customer_rides(request, driver_id):
 
             reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
             update_customer_sharing_rides(customer_ride_id_info, driver_phone)
-            cache.set(cache_key, pairs, timeout=300)
 
     return Response(pairs, status=status.HTTP_200_OK)
+
 @api_view(['POST'])
 def end_private_ride(request):
     try:
@@ -958,17 +949,16 @@ def reschedule_customer_ride(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-def fetch_all_ongoing_customer_rides(request, driver_id):
+def fetch_all_ongoing_private_customer_rides(request, driver_id):
 
     ongoing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Ongoing',
-          driver_id=driver_id) |
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Ongoing',
           driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
         customer_id_info=F('customer_id'),
         customer_ride_datetime=F('ride_date_time'),
+        customer_phone_info=F('phone'),
         driver_phone_info=F('driver__phone'),
         driver_id_info=F('driver_id'),
         customer_drop_priority_info=F('drop_priority'),
@@ -986,4 +976,30 @@ def fetch_all_ongoing_customer_rides(request, driver_id):
 
     return Response(pairs, status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
 
+    excluded_pairs = []
+
+    url = f"http://127.0.0.1:8000/api/fetchSharingCustomers/{driver_id}/"
+    getPairsOfSharingRides = requests.request("GET", url)
+    data = getPairsOfSharingRides.json()
+
+    for pair in data:
+        ongoing_found = False
+        upcoming_found = False
+
+        for ride in pair:
+            ride_status = ride["customer_ride_status_info"]
+            if ride_status == "Ongoing":
+                ongoing_found = True
+            elif ride_status == "Upcoming":
+                upcoming_found = True
+
+        if ongoing_found and upcoming_found:
+            excluded_pairs.append(pair)
+
+        elif ongoing_found:
+            excluded_pairs.append(pair)
+
+    return Response(excluded_pairs, status=status.HTTP_200_OK)
