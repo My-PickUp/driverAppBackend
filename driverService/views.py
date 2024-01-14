@@ -996,28 +996,28 @@ def fetch_all_ongoing_private_customer_rides(request, driver_id):
 
 @api_view(['GET'])
 def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
+    try:
 
-    excluded_pairs = []
+        url = f"https://driverappbackend.onrender.com/api/fetchSharingCustomers/{driver_id}/"
+        getPairsOfSharingRides = requests.get(url)
+        getPairsOfSharingRides.raise_for_status()  # Raise HTTPError for bad responses
 
-    url = f"https://driverappbackend.onrender.com/api/fetchSharingCustomers/{driver_id}/"
-    getPairsOfSharingRides = requests.request("GET", url)
-    data = getPairsOfSharingRides.json()
+        data = getPairsOfSharingRides.json()
 
-    for pair in data:
-        ongoing_found = False
-        upcoming_found = False
+        excluded_pairs = []
 
-        for ride in pair:
-            ride_status = ride["customer_ride_status_info"]
-            if ride_status == "Ongoing":
-                ongoing_found = True
-            elif ride_status == "Upcoming":
-                upcoming_found = True
+        for pair in data:
+            ongoing_found = any(ride["customer_ride_status_info"] == "Ongoing" for ride in pair)
+            upcoming_found = any(ride["customer_ride_status_info"] == "Upcoming" for ride in pair)
 
-        if ongoing_found and upcoming_found:
-            excluded_pairs.append(pair)
+            if ongoing_found and upcoming_found:
+                excluded_pairs.append(pair)
+            elif ongoing_found:
+                excluded_pairs.append(pair)
 
-        elif ongoing_found:
-            excluded_pairs.append(pair)
+        return Response(excluded_pairs, status=status.HTTP_200_OK)
 
-    return Response(excluded_pairs, status=status.HTTP_200_OK)
+    except requests.RequestException as e:
+        return Response({"error": f"Request error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except ValueError as e:
+        return Response({"error": f"JSON parsing error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
