@@ -1,6 +1,8 @@
 import csv
 import json
 import random
+
+import threading
 import requests
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.timezone import make_aware
@@ -16,6 +18,7 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+
 from .serializers import CancelRideSerializer, RescheduleRideSerializer
 
 from driverService import models
@@ -700,6 +703,7 @@ def fetch_private_customer_rides(request, driver_id):
     '''
 
     pairs = []
+    thread_list = []
     for i in range(len(private_queryset)):
         pair = [private_queryset[i]]
         pairs.append(pair)
@@ -710,11 +714,44 @@ def fetch_private_customer_rides(request, driver_id):
 
         customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
 
-        reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
-        update_customer_sharing_rides(customer_ride_id_info, driver_phone)
-        cache.set(cache_key, pairs, timeout=300)
+        '''
+                    Create a thread for each pair of tasks.
+                    '''
+        thread = threading.Thread(
+            target=reschedule_and_update,
+            args=(customer_ride_id_info, customer_ride_datetime_str, driver_phone)
+        )
+        thread_list.append(thread)
 
+        '''
+        Start the thread.
+        '''
+        thread.start()
+
+        print(f"Thread started - Iteration {i + 1}")
+
+    '''
+    Wait for all threads to finish.
+    '''
+    for thread in thread_list:  # Renamed the variable to avoid conflicts
+        thread.join()
+
+    cache.set(cache_key, pairs, timeout=300)
     return Response(pairs, status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @api_view(['POST'])
 def start_sharing_ride(request):
 
@@ -758,6 +795,9 @@ def start_sharing_ride(request):
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, driver_phone):
+    reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
+    update_customer_sharing_rides(customer_ride_id_info, driver_phone)
 @api_view(['GET'])
 @cache_page(60 * 2)
 def fetch_sharing_customer_rides(request, driver_id):
@@ -787,6 +827,8 @@ def fetch_sharing_customer_rides(request, driver_id):
     ).order_by('ride_date_time').distinct()
 
     pairs = []
+    thread_list = []
+
     for i in range(0, len(sharing_queryset), 2):
         if i + 1 < len(sharing_queryset):
             pair = [sharing_queryset[i], sharing_queryset[i + 1]]
@@ -798,10 +840,29 @@ def fetch_sharing_customer_rides(request, driver_id):
 
             customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
 
-            reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
-            update_customer_sharing_rides(customer_ride_id_info, driver_phone)
-            cache.set(cache_key, pairs, timeout=300)
+            '''
+            Create a thread for each pair of tasks.
+            '''
+            thread = threading.Thread(
+                target=reschedule_and_update,
+                args=(customer_ride_id_info, customer_ride_datetime_str, driver_phone)
+            )
+            thread_list.append(thread)
 
+            '''
+            Start the thread.
+            '''
+            thread.start()
+
+            print(f"Thread started - Iteration {i + 1}")
+
+    '''
+    Wait for all threads to finish.
+    '''
+    for thread in thread_list:  # Renamed the variable to avoid conflicts
+        thread.join()
+
+    cache.set(cache_key, pairs, timeout=300)
     return Response(pairs, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
@@ -922,7 +983,6 @@ def map_driver_customer_app_ride_status(ride_id, new_status):
             "message": str(e),
         }
         return result
-
 
 @api_view(['POST'])
 def cancel_customer_ride(request):
