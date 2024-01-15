@@ -363,231 +363,231 @@ def form_upload_response(request):
 This API will be syncing the driver_info
  and customer_ride_date_time info for all Private rides with the customerApp service.
 '''
-# @api_view(['GET'])
-# @cache_page(60 * 20)
-# def get_upcoming_private_rides(request, driver_id):
-#
-#     '''
-#     Caching all private rides info with the driverAppBackend for interval of 20 min.
-#     '''
-#     cache_key = f'upcoming_private_rides_{driver_id}'
-#     cached_result = cache.get(cache_key)
-#     if cached_result:
-#         return JsonResponse({"status": "success", "data": {"upcoming_private_rides": cached_result}})
-#
-#
-#     try:
-#         driver = get_object_or_404(Driver, driver_id=driver_id)
-#
-#         with connections['default'].cursor() as cursor:
-#             query = """
-#                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
-#     driver.name AS driver_name,
-#     driver.phone AS driver_phone,
-#     usersInfo.phone_number AS user_phone,
-#     usersInfo.name AS user_name,
-#     usersInfo.id AS user_id,
-#     customer.ride_date_time,
-#     customer.driver_id,
-#     customer.drop_priority,
-#     driverRide.ride_type,
-#     customer.customer_ride_id AS customer_ride_id,
-#     userRides.ride_status,
-#     userRides.drop_address_type,
-#     userRides.drop_address,
-#     userRides.pickup_address_type,
-#     userRides.pickup_address,
-#     driverRide.ride_id,
-#     CASE
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
-#         ELSE 'Unknown'
-#     END AS day_of_week
-# FROM
-#     "driverService_customer" AS customer
-# JOIN
-#     "driverService_driverride" AS driverRide
-# ON
-#     customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
-# JOIN
-#     "driverService_driver" AS driver
-# ON
-#     driver.driver_id = driverRide.driver_id
-# JOIN
-#     users AS usersInfo
-# ON
-#     usersInfo.id = customer.customer_id
-# JOIN
-#     users_rides_detail AS userRides
-# ON
-#     usersInfo.id = userRides.user_id
-# WHERE
-#     userRides.ride_status = 'Upcoming'
-#     AND ride_type = 'Private'
-#     AND driverRide.driver_id = %s
-#     AND NOT EXISTS (
-#         SELECT 1
-#         FROM "driverService_customer" AS ongoing_customer
-#         WHERE
-#             ongoing_customer.customer_ride_id = customer.customer_ride_id
-#             AND ongoing_customer.customer_ride_status = 'Ongoing'
-#     )
-# ORDER BY
-#     customer.ride_date_time,
-#     customer.driver_id,
-#     customer.ride_date_time DESC;
-#                     """
-#             cursor.execute(query, [driver_id])
-#             rows = cursor.fetchall()
-#
-#             result = [
-#                 dict(zip([column[0] for column in cursor.description], row))
-#                 for row in rows
-#             ]
-#
-#             pairs = []
-#             for i in range(len(result)):
-#                 pair = [result[i]]
-#                 pairs.append(pair)
-#
-#             for pair in pairs:
-#                 for row in pair:
-#                     # print(row)
-#                     driver_phone = row['driver_phone']
-#                     ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
-#                     user_id = row['user_id']
-#                     customer_ride_id = row['customer_ride_id']
-#                     # print(driver_phone, ride_date_time, user_id, customer_ride_id)
-#                     reschedule_ride(customer_ride_id, ride_date_time)
-#                     update_customer_sharing_rides(customer_ride_id, driver_phone)
-#                     cache.set(cache_key, result, timeout=300)
-#
-#             return JsonResponse({"status": "success", "data": {"upcoming_private_rides": pairs}})
-#
-#     except OperationalError as e:
-#         return JsonResponse({"status": "error", "message": str(e)})
-#
-#     except Exception as e:
-#         return JsonResponse({"status": "error", "message": str(e)})
+@api_view(['GET'])
+@cache_page(60 * 20)
+def get_upcoming_private_rides(request, driver_id):
+
+    '''
+    Caching all private rides info with the driverAppBackend for interval of 20 min.
+    '''
+    cache_key = f'upcoming_private_rides_{driver_id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return JsonResponse({"status": "success", "data": {"upcoming_private_rides": cached_result}})
+
+
+    try:
+        driver = get_object_or_404(Driver, driver_id=driver_id)
+
+        with connections['default'].cursor() as cursor:
+            query = """
+                    SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
+    driver.name AS driver_name,
+    driver.phone AS driver_phone,
+    usersInfo.phone_number AS user_phone,
+    usersInfo.name AS user_name,
+    usersInfo.id AS user_id,
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.drop_priority,
+    driverRide.ride_type,
+    customer.customer_ride_id AS customer_ride_id,
+    userRides.ride_status,
+    userRides.drop_address_type,
+    userRides.drop_address,
+    userRides.pickup_address_type,
+    userRides.pickup_address,
+    driverRide.ride_id,
+    CASE
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
+        ELSE 'Unknown'
+    END AS day_of_week
+FROM
+    "driverService_customer" AS customer
+JOIN
+    "driverService_driverride" AS driverRide
+ON
+    customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
+JOIN
+    "driverService_driver" AS driver
+ON
+    driver.driver_id = driverRide.driver_id
+JOIN
+    users AS usersInfo
+ON
+    usersInfo.id = customer.customer_id
+JOIN
+    users_rides_detail AS userRides
+ON
+    usersInfo.id = userRides.user_id
+WHERE
+    userRides.ride_status = 'Upcoming'
+    AND ride_type = 'Private'
+    AND driverRide.driver_id = %s
+    AND NOT EXISTS (
+        SELECT 1
+        FROM "driverService_customer" AS ongoing_customer
+        WHERE
+            ongoing_customer.customer_ride_id = customer.customer_ride_id
+            AND ongoing_customer.customer_ride_status = 'Ongoing'
+    )
+ORDER BY
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.ride_date_time DESC;
+                    """
+            cursor.execute(query, [driver_id])
+            rows = cursor.fetchall()
+
+            result = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in rows
+            ]
+
+            pairs = []
+            for i in range(len(result)):
+                pair = [result[i]]
+                pairs.append(pair)
+
+            for pair in pairs:
+                for row in pair:
+                    # print(row)
+                    driver_phone = row['driver_phone']
+                    ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
+                    user_id = row['user_id']
+                    customer_ride_id = row['customer_ride_id']
+                    # print(driver_phone, ride_date_time, user_id, customer_ride_id)
+                    reschedule_ride(customer_ride_id, ride_date_time)
+                    update_customer_sharing_rides(customer_ride_id, driver_phone)
+                    cache.set(cache_key, result, timeout=300)
+
+            return JsonResponse({"status": "success", "data": {"upcoming_private_rides": pairs}})
+
+    except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
 '''
 This API will be syncing the driver_info
  and customer_ride_date_time info for all Sharing rides with the customerApp service.
 '''
-# @api_view(['GET'])
-# @cache_page(60 * 20)
-# def get_upcoming_sharing_rides(request, driver_id):
-#     '''
-#         Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
-#     '''
-#     cache_key = f'upcoming_sharing_rides_{driver_id}'
-#     cached_result = cache.get(cache_key)
-#     if cached_result:
-#         return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": cached_result}})
-#
-#     try:
-#         driver = Driver.objects.get(driver_id=driver_id)
-#     except Driver.DoesNotExist:
-#         return JsonResponse({"status": "error", "message": f"Driver with ID {driver_id} does not exist in the system"})
-#
-#     try:
-#         with connections['default'].cursor() as cursor:
-#             query = """
-#                     SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
-#     driver.name AS driver_name,
-#     driver.phone AS driver_phone,
-#     usersInfo.phone_number AS user_phone,
-#     usersInfo.name AS user_name,
-#     usersInfo.id AS user_id,
-#     customer.ride_date_time,
-#     customer.driver_id,
-#     customer.drop_priority,
-#     driverRide.ride_type,
-#     customer.customer_ride_id AS customer_ride_id,
-#     userRides.ride_status,
-#     userRides.drop_address_type,
-#     userRides.drop_address,
-#     userRides.pickup_address_type,
-#     userRides.pickup_address,
-#     driverRide.ride_id,
-#     CASE
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
-#         WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
-#         ELSE 'Unknown'
-#     END AS day_of_week
-# FROM
-#     "driverService_customer" AS customer
-# JOIN
-#     "driverService_driverride" AS driverRide
-# ON
-#     customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
-# JOIN
-#     "driverService_driver" AS driver
-# ON
-#     driver.driver_id = driverRide.driver_id
-# JOIN
-#     users AS usersInfo
-# ON
-#     usersInfo.id = customer.customer_id
-# JOIN
-#     users_rides_detail AS userRides
-# ON
-#     usersInfo.id = userRides.user_id
-# WHERE
-#     userRides.ride_status = 'Upcoming'
-#     AND ride_type = 'Sharing'
-#     AND driverRide.driver_id = %s
-#     AND NOT EXISTS (
-#         SELECT 1
-#         FROM "driverService_customer" AS ongoing_customer
-#         WHERE
-#             ongoing_customer.customer_ride_id = customer.customer_ride_id
-#             AND ongoing_customer.customer_ride_status = 'Ongoing'
-#     )
-# ORDER BY
-#     customer.ride_date_time,
-#     customer.driver_id,
-#     customer.ride_date_time DESC;
-#                     """
-#             cursor.execute(query, [driver_id])
-#             rows = cursor.fetchall()
-#
-#             result = [
-#                 dict(zip([column[0] for column in cursor.description], row))
-#                 for row in rows
-#             ]
-#
-#             pairs = []
-#             for i in range(0, len(result), 2):
-#                 if i + 1 < len(result):
-#                     pair = [result[i], result[i + 1]]
-#                     pairs.append(pair)
-#
-#             for pair in pairs:
-#                 for row in pair:
-#                     #print(row)
-#                     driver_phone = row['driver_phone']
-#                     ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
-#                     user_id = row['user_id']
-#                     customer_ride_id = row['customer_ride_id']
-#                     print(customer_ride_id, driver_phone)
-#                     #reschedule_ride(customer_ride_id, ride_date_time)
-#                     #update_customer_sharing_rides(customer_ride_id, driver_phone)
-#                     cache.set(cache_key, result, timeout=300)
-#
-#             return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
-#
-#     except OperationalError as e:
-#         return JsonResponse({"status": "error", "message": str(e)})
+@api_view(['GET'])
+@cache_page(60 * 20)
+def get_upcoming_sharing_rides(request, driver_id):
+    '''
+        Caching all Sharing rides info with the driverAppBackend for interval of 20 min.
+    '''
+    cache_key = f'upcoming_sharing_rides_{driver_id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": cached_result}})
+
+    try:
+        driver = Driver.objects.get(driver_id=driver_id)
+    except Driver.DoesNotExist:
+        return JsonResponse({"status": "error", "message": f"Driver with ID {driver_id} does not exist in the system"})
+
+    try:
+        with connections['default'].cursor() as cursor:
+            query = """
+                    SELECT DISTINCT ON (customer.ride_date_time, customer.driver_id)
+    driver.name AS driver_name,
+    driver.phone AS driver_phone,
+    usersInfo.phone_number AS user_phone,
+    usersInfo.name AS user_name,
+    usersInfo.id AS user_id,
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.drop_priority,
+    driverRide.ride_type,
+    customer.customer_ride_id AS customer_ride_id,
+    userRides.ride_status,
+    userRides.drop_address_type,
+    userRides.drop_address,
+    userRides.pickup_address_type,
+    userRides.pickup_address,
+    driverRide.ride_id,
+    CASE
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 0 THEN 'Sunday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 1 THEN 'Monday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 2 THEN 'Tuesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 3 THEN 'Wednesday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 4 THEN 'Thursday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 5 THEN 'Friday'
+        WHEN EXTRACT(DOW FROM customer.ride_date_time) = 6 THEN 'Saturday'
+        ELSE 'Unknown'
+    END AS day_of_week
+FROM
+    "driverService_customer" AS customer
+JOIN
+    "driverService_driverride" AS driverRide
+ON
+    customer.ride_date_time = driverRide.ride_date_time AND customer.driver_id = driverRide.driver_id
+JOIN
+    "driverService_driver" AS driver
+ON
+    driver.driver_id = driverRide.driver_id
+JOIN
+    users AS usersInfo
+ON
+    usersInfo.id = customer.customer_id
+JOIN
+    users_rides_detail AS userRides
+ON
+    usersInfo.id = userRides.user_id
+WHERE
+    userRides.ride_status = 'Upcoming'
+    AND ride_type = 'Sharing'
+    AND driverRide.driver_id = %s
+    AND NOT EXISTS (
+        SELECT 1
+        FROM "driverService_customer" AS ongoing_customer
+        WHERE
+            ongoing_customer.customer_ride_id = customer.customer_ride_id
+            AND ongoing_customer.customer_ride_status = 'Ongoing'
+    )
+ORDER BY
+    customer.ride_date_time,
+    customer.driver_id,
+    customer.ride_date_time DESC;
+                    """
+            cursor.execute(query, [driver_id])
+            rows = cursor.fetchall()
+
+            result = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in rows
+            ]
+
+            pairs = []
+            for i in range(0, len(result), 2):
+                if i + 1 < len(result):
+                    pair = [result[i], result[i + 1]]
+                    pairs.append(pair)
+
+            for pair in pairs:
+                for row in pair:
+                    #print(row)
+                    driver_phone = row['driver_phone']
+                    ride_date_time = row['ride_date_time'].strftime('%Y-%m-%d %H:%M:%S')
+                    user_id = row['user_id']
+                    customer_ride_id = row['customer_ride_id']
+                    print(customer_ride_id, driver_phone)
+                    #reschedule_ride(customer_ride_id, ride_date_time)
+                    #update_customer_sharing_rides(customer_ride_id, driver_phone)
+                    cache.set(cache_key, result, timeout=300)
+
+            return JsonResponse({"status": "success", "data": {"upcoming_sharing_rides": pairs}})
+
+    except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})
 
 def reschedule_ride(customer_ride_id, ride_date_time):
 
