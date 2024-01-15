@@ -1069,5 +1069,3 @@ def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
         pairs.append(pair)
 
     return Response(pairs, status=status.HTTP_200_OK)
-
-

@@ -11,5 +11,5 @@ WORKDIR /code
 EXPOSE 8000
 
 # runs the production server
-ENTRYPOINT ["python", "driverService/manage.py"]
+ENTRYPOINT ["python", "driverService"]
 CMD ["runserver", "0.0.0.0:8000"]
