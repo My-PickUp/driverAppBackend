@@ -770,8 +770,7 @@ def fetch_sharing_customer_rides(request, driver_id):
         return JsonResponse({"status": "success", "data": {"sharing_customer_rides": cached_result}})
 
     sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id) |
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Ongoing', driver_id=driver_id)
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
         customer_id_info=F('customer_id'),
@@ -994,31 +993,34 @@ def fetch_all_ongoing_private_customer_rides(request, driver_id):
 
     return Response(pairs, status=status.HTTP_200_OK)
 
-def fetch_and_process_data(driver_id):
-    url = f"https://driverappbackend.onrender.com/api/fetchSharingCustomers/{driver_id}/"
-    get_pairs_of_sharing_rides = requests.get(url)
-    get_pairs_of_sharing_rides.raise_for_status()
-    data = get_pairs_of_sharing_rides.json()
-
-    excluded_pairs = []
-
-    for pair in data:
-        ongoing_found = any(ride["customer_ride_status_info"] == "Ongoing" for ride in pair)
-        upcoming_found = any(ride["customer_ride_status_info"] == "Upcoming" for ride in pair)
-
-        if ongoing_found and upcoming_found:
-            excluded_pairs.append(pair)
-        elif ongoing_found:
-            excluded_pairs.append(pair)
-
-    return excluded_pairs
-
 @api_view(['GET'])
 def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
-    try:
-        excluded_pairs = fetch_and_process_data(driver_id)
-        return Response(excluded_pairs, status=status.HTTP_200_OK)
-    except requests.RequestException as e:
-        return Response({"error": f"Request error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    except ValueError as e:
-        return Response({"error": f"JSON parsing error: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    ongoing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Ongoing',
+          driver_id=driver_id)
+    ).values(
+        customer_name_info=F('name'),
+        customer_id_info=F('customer_id'),
+        customer_ride_datetime=F('ride_date_time'),
+        customer_phone_info=F('phone'),
+        driver_phone_info=F('driver__phone'),
+        driver_id_info=F('driver_id'),
+        customer_drop_priority_info=F('drop_priority'),
+        driver_ride_type_info=F('driver__driverride__ride_type'),
+        customer_ride_id_info=F('customer_ride_id'),
+        customer_ride_status_info=F('customer_ride_status'),
+        customer_pickup_address_info=F('pickup_address'),
+        customer_drop_address_info=F('drop_address'),
+    ).order_by('ride_date_time').distinct()
+
+    pairs = []
+    for i in range(0, len(ongoing_queryset), 2):
+        pair = [ongoing_queryset[i]]
+        if i + 1 < len(ongoing_queryset):
+            pair = [ongoing_queryset[i], ongoing_queryset[i + 1]]
+        pairs.append(pair)
+
+    return Response(pairs, status=status.HTTP_200_OK)
+
+
