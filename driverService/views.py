@@ -718,7 +718,7 @@ def fetch_private_customer_rides(request, driver_id):
                     Create a thread for each pair of tasks.
                     '''
         thread = threading.Thread(
-            target=reschedule_and_update,
+            # target=reschedule_and_update,
             args=(customer_ride_id_info, customer_ride_datetime_str, driver_phone)
         )
         thread_list.append(thread)
@@ -782,9 +782,9 @@ def start_sharing_ride(request):
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, driver_phone):
-    reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
-    update_customer_sharing_rides(customer_ride_id_info, driver_phone)
+# def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, driver_phone):
+#     reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
+#     update_customer_sharing_rides(customer_ride_id_info, driver_phone)
 @api_view(['GET'])
 @cache_page(60 * 2)
 def fetch_sharing_customer_rides(request, driver_id):
@@ -831,7 +831,7 @@ def fetch_sharing_customer_rides(request, driver_id):
             Create a thread for each pair of tasks.
             '''
             thread = threading.Thread(
-                target=reschedule_and_update,
+                # target=reschedule_and_update,
                 args=(customer_ride_id_info, customer_ride_datetime_str, driver_phone)
             )
             thread_list.append(thread)
