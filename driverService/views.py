@@ -739,19 +739,6 @@ def fetch_private_customer_rides(request, driver_id):
     cache.set(cache_key, pairs, timeout=300)
     return Response(pairs, status=status.HTTP_200_OK)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 @api_view(['POST'])
 def start_sharing_ride(request):
 
