@@ -613,7 +613,7 @@ def reschedule_ride(customer_ride_id, ride_date_time):
         print(f"Error making reschedule request: {e}")
 
 def update_customer_sharing_rides(customer_ride_id, driver_phone):
-    update_url = f'https://fast-o4qh.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
+    update_url = f'https://customer-mypickup.souvikmondal.live/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
     print(update_url)
 
     try:
@@ -939,7 +939,7 @@ def end_sharing_ride(request):
 
 def map_driver_customer_app_ride_status(ride_id, new_status):
 
-    url = f'https://fast-o4qh.onrender.com/updateRideStatus?ride_id={ride_id}'
+    url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json',
