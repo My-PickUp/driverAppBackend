@@ -17,9 +17,10 @@ urlpatterns = [
     path('endPrivateRide/', views.end_private_ride, name='end-private-ride'),
     path('startSharingRide/', views.start_sharing_ride, name='start-sharing-ride'),
     path('endSharingRide/', views.end_sharing_ride, name='end-sharing-ride'),
-    path('fetchPrivateCustomers/<int:driver_id>/', views.fetch_private_customer_rides, name='fetch-private-customers'),
-    path('fetchSharingCustomers/<int:driver_id>/', views.fetch_sharing_customer_rides, name='fetch-sharing-customers'),
+    #path('fetchPrivateCustomers/<int:driver_id>/', views.fetch_private_customer_rides, name='fetch-private-customers'),
+    #path('fetchSharingCustomers/<int:driver_id>/', views.fetch_sharing_customer_rides, name='fetch-sharing-customers'),
     path('fetchOngoingPrivateCustomers/<int:driver_id>/', views.fetch_all_ongoing_private_customer_rides, name='fetch-all-ongoing-private-customer-rides'),
     path('fetchOngoingSharingCustomers/<int:driver_id>/', views.fetch_all_ongoing_sharing_customer_rides, name='fetch-all-ongoing-sharing-customer-rides'),
+    path('fetchCustomerRides/<int:driver_id>/', views.fetch_customer_rides, name='fetch-customer-rides'),
     path('awake/', views.awake, name='awake'),
 ]

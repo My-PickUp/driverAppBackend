@@ -632,74 +632,74 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
     update_customer_sharing_rides(customer_ride_id_info, driver_phone)
 
 
-@api_view(['GET'])
-def fetch_private_customer_rides(request, driver_id):
-    '''
-                Caching all private rides info with the driverAppBackend for interval of 2 min.
-        '''
-    # cache_key = f'private_customer_rides_{driver_id}'
-    # cached_result = cache.get(cache_key)
-    # if cached_result:
-    #     return JsonResponse({"status": "success", "data": {"private_customer_rides_": cached_result}})
-
-    private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
-        Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
-    ).values(
-        customer_name_info=F('name'),
-        customer_id_info=F('customer_id'),
-        customer_phone_info=F('phone'),
-        customer_ride_datetime=F('ride_date_time'),
-        driver_phone_info=F('driver__phone'),
-        driver_id_info=F('driver_id'),
-        customer_drop_priority_info=F('drop_priority'),
-        driver_ride_type_info=F('driver__driverride__ride_type'),
-        customer_ride_id_info=F('customer_ride_id'),
-        customer_ride_status_info=F('customer_ride_status'),
-        customer_pickup_address_info=F('pickup_address'),
-        customer_drop_address_info=F('drop_address'),
-    ).order_by('ride_date_time').distinct()
-
-    '''
-    Appended each private_rides in each Nested lists.
-    '''
-
-    pairs = []
-
-    with ThreadPoolExecutor() as executor:
-        futures = []
-
-        for i in range(len(private_queryset)):
-            pair = [private_queryset[i]]
-            pairs.append(pair)
-
-            customer_ride_id_info = private_queryset[i]['customer_ride_id_info']
-            customer_ride_datetime = private_queryset[i]['customer_ride_datetime']
-            driver_phone = private_queryset[i]['driver_phone_info']
-
-            customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
-
-            '''
-            Submit tasks to the ThreadPoolExecutor.
-            '''
-            future = executor.submit(
-                reschedule_and_update,
-                customer_ride_id_info,
-                customer_ride_datetime_str,
-                driver_phone
-            )
-            futures.append(future)
-
-            print(f"Task submitted - Iteration {i + 1}")
-
-            '''
-            Wait for all submitted tasks to complete.
-            '''
-        for future in futures:
-            result = future.result()
-            print(f"Task completed - Result: {result}")
-
-        # cache.set(cache_key, pairs, timeout=300)
-        return Response(pairs, status=status.HTTP_200_OK)
+# @api_view(['GET'])
+# def fetch_private_customer_rides(request, driver_id):
+#     '''
+#                 Caching all private rides info with the driverAppBackend for interval of 2 min.
+#         '''
+#     # cache_key = f'private_customer_rides_{driver_id}'
+#     # cached_result = cache.get(cache_key)
+#     # if cached_result:
+#     #     return JsonResponse({"status": "success", "data": {"private_customer_rides_": cached_result}})
+#
+#     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+#         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
+#     ).values(
+#         customer_name_info=F('name'),
+#         customer_id_info=F('customer_id'),
+#         customer_phone_info=F('phone'),
+#         customer_ride_datetime=F('ride_date_time'),
+#         driver_phone_info=F('driver__phone'),
+#         driver_id_info=F('driver_id'),
+#         customer_drop_priority_info=F('drop_priority'),
+#         driver_ride_type_info=F('driver__driverride__ride_type'),
+#         customer_ride_id_info=F('customer_ride_id'),
+#         customer_ride_status_info=F('customer_ride_status'),
+#         customer_pickup_address_info=F('pickup_address'),
+#         customer_drop_address_info=F('drop_address'),
+#     ).order_by('ride_date_time').distinct()
+#
+#     '''
+#     Appended each private_rides in each Nested lists.
+#     '''
+#
+#     pairs = []
+#
+#     with ThreadPoolExecutor() as executor:
+#         futures = []
+#
+#         for i in range(len(private_queryset)):
+#             pair = [private_queryset[i]]
+#             pairs.append(pair)
+#
+#             customer_ride_id_info = private_queryset[i]['customer_ride_id_info']
+#             customer_ride_datetime = private_queryset[i]['customer_ride_datetime']
+#             driver_phone = private_queryset[i]['driver_phone_info']
+#
+#             customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+#
+#             '''
+#             Submit tasks to the ThreadPoolExecutor.
+#             '''
+#             future = executor.submit(
+#                 reschedule_and_update,
+#                 customer_ride_id_info,
+#                 customer_ride_datetime_str,
+#                 driver_phone
+#             )
+#             futures.append(future)
+#
+#             print(f"Task submitted - Iteration {i + 1}")
+#
+#             '''
+#             Wait for all submitted tasks to complete.
+#             '''
+#         for future in futures:
+#             result = future.result()
+#             print(f"Task completed - Result: {result}")
+#
+#         # cache.set(cache_key, pairs, timeout=300)
+#         return Response(pairs, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def start_private_ride(request):
@@ -744,71 +744,71 @@ def start_private_ride(request):
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['GET'])
-def fetch_sharing_customer_rides(request, driver_id):
-    # '''
-    #     Caching all sharing rides info with the driverAppBackend for interval of 2 min.
-    #     '''
-    # cache_key = f'sharing_customer_rides_{driver_id}'
-    # cached_result = cache.get(cache_key)
-    # if cached_result:
-    #     return JsonResponse({"status": "success", "data": {"sharing_customer_rides": cached_result}})
-
-    sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id)
-    ).values(
-        customer_name_info=F('name'),
-        customer_id_info=F('customer_id'),
-        customer_phone_info=F('phone'),
-        customer_ride_datetime=F('ride_date_time'),
-        driver_id_info=F('driver_id'),
-        customer_drop_priority_info=F('drop_priority'),
-        driver_ride_type_info=F('driver__driverride__ride_type'),
-        driver_phone_info= F('driver__phone'),
-        customer_ride_id_info=F('customer_ride_id'),
-        customer_ride_status_info=F('customer_ride_status'),
-        customer_pickup_address_info=F('pickup_address'),
-        customer_drop_address_info=F('drop_address'),
-    ).order_by('ride_date_time').distinct()
-
-    pairs = []
-
-    with ThreadPoolExecutor() as executor:
-        futures = []
-
-        for i in range(0, len(sharing_queryset), 2):
-            if i + 1 < len(sharing_queryset):
-                pair = [sharing_queryset[i], sharing_queryset[i + 1]]
-                pairs.append(pair)
-
-                customer_ride_id_info = sharing_queryset[i]['customer_ride_id_info']
-                customer_ride_datetime = sharing_queryset[i]['customer_ride_datetime']
-                driver_phone = sharing_queryset[i]['driver_phone_info']
-
-                customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
-
-                '''
-                Submit tasks to the ThreadPoolExecutor.
-                '''
-                future = executor.submit(
-                    reschedule_and_update,
-                    customer_ride_id_info,
-                    customer_ride_datetime_str,
-                    driver_phone
-                )
-                futures.append(future)
-
-                print(f"Task submitted - Iteration {i + 1}")
-
-        '''
-        Wait for all submitted tasks to complete
-        '''
-        for future in futures:
-            result = future.result()
-            print(f"Task completed - Result: {result}")
-
-    # cache.set(cache_key, pairs, timeout=300)
-    return Response(pairs, status=status.HTTP_200_OK)
+# @api_view(['GET'])
+# def fetch_sharing_customer_rides(request, driver_id):
+#     # '''
+#     #     Caching all sharing rides info with the driverAppBackend for interval of 2 min.
+#     #     '''
+#     # cache_key = f'sharing_customer_rides_{driver_id}'
+#     # cached_result = cache.get(cache_key)
+#     # if cached_result:
+#     #     return JsonResponse({"status": "success", "data": {"sharing_customer_rides": cached_result}})
+#
+#     sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+#         Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id)
+#     ).values(
+#         customer_name_info=F('name'),
+#         customer_id_info=F('customer_id'),
+#         customer_phone_info=F('phone'),
+#         customer_ride_datetime=F('ride_date_time'),
+#         driver_id_info=F('driver_id'),
+#         customer_drop_priority_info=F('drop_priority'),
+#         driver_ride_type_info=F('driver__driverride__ride_type'),
+#         driver_phone_info= F('driver__phone'),
+#         customer_ride_id_info=F('customer_ride_id'),
+#         customer_ride_status_info=F('customer_ride_status'),
+#         customer_pickup_address_info=F('pickup_address'),
+#         customer_drop_address_info=F('drop_address'),
+#     ).order_by('ride_date_time').distinct()
+#
+#     pairs = []
+#
+#     with ThreadPoolExecutor() as executor:
+#         futures = []
+#
+#         for i in range(0, len(sharing_queryset), 2):
+#             if i + 1 < len(sharing_queryset):
+#                 pair = [sharing_queryset[i], sharing_queryset[i + 1]]
+#                 pairs.append(pair)
+#
+#                 customer_ride_id_info = sharing_queryset[i]['customer_ride_id_info']
+#                 customer_ride_datetime = sharing_queryset[i]['customer_ride_datetime']
+#                 driver_phone = sharing_queryset[i]['driver_phone_info']
+#
+#                 customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+#
+#                 '''
+#                 Submit tasks to the ThreadPoolExecutor.
+#                 '''
+#                 future = executor.submit(
+#                     reschedule_and_update,
+#                     customer_ride_id_info,
+#                     customer_ride_datetime_str,
+#                     driver_phone
+#                 )
+#                 futures.append(future)
+#
+#                 print(f"Task submitted - Iteration {i + 1}")
+#
+#         '''
+#         Wait for all submitted tasks to complete
+#         '''
+#         for future in futures:
+#             result = future.result()
+#             print(f"Task completed - Result: {result}")
+#
+#     # cache.set(cache_key, pairs, timeout=300)
+#     return Response(pairs, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def start_sharing_ride(request):
@@ -1068,5 +1068,111 @@ def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
         if i + 1 < len(ongoing_queryset):
             pair = [ongoing_queryset[i], ongoing_queryset[i + 1]]
         pairs.append(pair)
+
+    return Response(pairs, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def fetch_customer_rides(request, driver_id):
+    '''
+    Caching all private and sharing rides info with the driverAppBackend for an interval of 2 min.
+    '''
+    # cache_key_private = f'private_customer_rides_{driver_id}'
+    # cached_result_private = cache.get(cache_key_private)
+    #
+    # cache_key_sharing = f'sharing_customer_rides_{driver_id}'
+    # cached_result_sharing = cache.get(cache_key_sharing)
+    #
+    # if cached_result_private and cached_result_sharing:
+    #     return JsonResponse({"status": "success", "data": {"private_customer_rides": cached_result_private, "sharing_customer_rides": cached_result_sharing}})
+
+    private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+        Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
+    ).values(
+        customer_name_info=F('name'),
+        customer_id_info=F('customer_id'),
+        customer_phone_info=F('phone'),
+        customer_ride_datetime=F('ride_date_time'),
+        driver_phone_info=F('driver__phone'),
+        driver_id_info=F('driver_id'),
+        customer_drop_priority_info=F('drop_priority'),
+        driver_ride_type_info=F('driver__driverride__ride_type'),
+        customer_ride_id_info=F('customer_ride_id'),
+        customer_ride_status_info=F('customer_ride_status'),
+        customer_pickup_address_info=F('pickup_address'),
+        customer_drop_address_info=F('drop_address'),
+    ).order_by('ride_date_time').distinct()
+
+    sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id)
+    ).values(
+        customer_name_info=F('name'),
+        customer_id_info=F('customer_id'),
+        customer_phone_info=F('phone'),
+        customer_ride_datetime=F('ride_date_time'),
+        driver_id_info=F('driver_id'),
+        customer_drop_priority_info=F('drop_priority'),
+        driver_ride_type_info=F('driver__driverride__ride_type'),
+        driver_phone_info=F('driver__phone'),
+        customer_ride_id_info=F('customer_ride_id'),
+        customer_ride_status_info=F('customer_ride_status'),
+        customer_pickup_address_info=F('pickup_address'),
+        customer_drop_address_info=F('drop_address'),
+    ).order_by('ride_date_time').distinct()
+
+    pairs = []
+
+    with ThreadPoolExecutor() as executor:
+        futures = []
+
+        # Processing private rides
+        for i in range(len(private_queryset)):
+            pair = [private_queryset[i]]
+            pairs.append(pair)
+
+            customer_ride_id_info = private_queryset[i]['customer_ride_id_info']
+            customer_ride_datetime = private_queryset[i]['customer_ride_datetime']
+            driver_phone = private_queryset[i]['driver_phone_info']
+
+            customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+
+            future = executor.submit(
+                reschedule_and_update,
+                customer_ride_id_info,
+                customer_ride_datetime_str,
+                driver_phone
+            )
+            futures.append(future)
+
+            print(f"Task submitted - Iteration {i + 1}")
+
+        # Processing sharing rides
+        for i in range(0, len(sharing_queryset), 2):
+            if i + 1 < len(sharing_queryset):
+                pair = [sharing_queryset[i], sharing_queryset[i + 1]]
+                pairs.append(pair)
+
+                customer_ride_id_info = sharing_queryset[i]['customer_ride_id_info']
+                customer_ride_datetime = sharing_queryset[i]['customer_ride_datetime']
+                driver_phone = sharing_queryset[i]['driver_phone_info']
+
+                customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+
+                future = executor.submit(
+                    reschedule_and_update,
+                    customer_ride_id_info,
+                    customer_ride_datetime_str,
+                    driver_phone
+                )
+                futures.append(future)
+
+                print(f"Task submitted - Iteration {i + 1}")
+
+    # Wait for all submitted tasks to complete
+    for future in futures:
+        result = future.result()
+        print(f"Task completed - Result: {result}")
+
+    # cache.set(cache_key_private, pairs, timeout=300)
+    # cache.set(cache_key_sharing, pairs, timeout=300)
 
     return Response(pairs, status=status.HTTP_200_OK)
