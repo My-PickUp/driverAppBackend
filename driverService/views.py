@@ -633,7 +633,6 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
 
 
 @api_view(['GET'])
-@cache_page(60 * 2)
 def fetch_private_customer_rides(request, driver_id):
     '''
                 Caching all private rides info with the driverAppBackend for interval of 2 min.
@@ -746,7 +745,6 @@ def start_private_ride(request):
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
-@cache_page(60 * 2)
 def fetch_sharing_customer_rides(request, driver_id):
     '''
         Caching all sharing rides info with the driverAppBackend for interval of 2 min.
