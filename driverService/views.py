@@ -807,7 +807,7 @@ def remove_completed_rides(rides_list, driver_id):
             '''
             Handle the case where the ride is not found.
             '''
-            return Response("Customer does not exists", status=status.HTTP_404_NOT_FOUND)
+            raise Exception("Customer does not exist")
 
     '''
     Remove pairs marked for removal in reverse order to avoid index issues.
@@ -821,7 +821,6 @@ def remove_completed_rides(rides_list, driver_id):
     rides_list = [flattened_rides_list[i:i + 2] for i in range(0, len(flattened_rides_list), 2)]
 
     return rides_list
-
 
 
 def processingPairs(ongoing_sharing_rides_list, driver_id):
