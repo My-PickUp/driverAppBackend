@@ -785,8 +785,10 @@ def validate_and_update_status(rides_list, driver_id):
 
 def remove_completed_rides(rides_list, driver_id):
     rides_to_remove = []
+    flattened_rides_list = []
 
-    flattened_rides_list = sum(rides_list, [])
+    for pair in rides_list:
+        flattened_rides_list.extend(pair)
 
     for i, ride in enumerate(flattened_rides_list):
         customer_ride_id = ride.get("customer_ride_id_info")
@@ -821,6 +823,7 @@ def remove_completed_rides(rides_list, driver_id):
     rides_list = [flattened_rides_list[i:i + 2] for i in range(0, len(flattened_rides_list), 2)]
 
     return rides_list
+
 
 
 def processingPairs(ongoing_sharing_rides_list, driver_id):
