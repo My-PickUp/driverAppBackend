@@ -364,7 +364,7 @@ def form_upload_response(request):
 
 def reschedule_ride(customer_ride_id, ride_date_time):
 
-    url = f'https://fast-o4qh.onrender.com/reschedule_ride/'
+    url = f'https://customer-mypickup.souvikmondal.live/reschedule_ride/'
 
     payload = json.dumps({
   "ride_id": customer_ride_id,
@@ -863,12 +863,16 @@ def update_customer_driver(request, customer_ride_id):
                         status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PUT':
-        # Include only the driver_id field for partial updates
+        '''
+        Include only the driver_id field for partial updates.
+        '''
         serializer = CustomerSerializer(customer, data={'driver_id': request.data.get('driver_id')}, partial=True)
         if serializer.is_valid():
             serializer.save()
 
-            # Now, update the related driver separately
+            '''
+            Now, update the related driver separately.
+            '''
             driver_id = request.data.get('driver_id')
             if driver_id is not None:
                 customer.driver_id = driver_id
