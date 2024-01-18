@@ -854,6 +854,30 @@ def fetch_all_ongoing_private_customer_rides(request, driver_id):
 
     return Response(pairs, status=status.HTTP_200_OK)
 
+@api_view(['PUT'])
+def update_customer_driver(request, customer_ride_id):
+    try:
+        customer = Customer.objects.get(customer_ride_id=customer_ride_id)
+    except Customer.DoesNotExist:
+        return Response({'error': 'Customer not found with the specified customer_ride_id'},
+                        status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'PUT':
+        # Include only the driver_id field for partial updates
+        serializer = CustomerSerializer(customer, data={'driver_id': request.data.get('driver_id')}, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+
+            # Now, update the related driver separately
+            driver_id = request.data.get('driver_id')
+            if driver_id is not None:
+                customer.driver_id = driver_id
+                customer.save()
+
+            return Response({'status': 'Customer driver_id updated successfully'},
+                            status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
