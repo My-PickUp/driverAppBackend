@@ -664,6 +664,8 @@ def fetch_customer_rides(request, driver_id):
         Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id) |
         Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Ongoing', driver_id=driver_id) |
         Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Completed',
+        driver_id=driver_id) |
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Cancelled',
         driver_id=driver_id)
     ).values(
         customer_name_info=F('name'),
@@ -751,6 +753,7 @@ def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
 
     ongoing_sharing_rides_list = validate_and_update_status(ongoing_sharing_rides_list, driver_id)
     ongoing_sharing_rides_list = remove_completed_rides(ongoing_sharing_rides_list, driver_id)
+    ongoing_sharing_rides_list = remove_cancelled_rides(ongoing_sharing_rides_list, driver_id)
 
     new_pair = processingPairs(ongoing_sharing_rides_list, driver_id)
 
@@ -824,7 +827,46 @@ def remove_completed_rides(rides_list, driver_id):
 
     return rides_list
 
+def remove_cancelled_rides(rides_list, driver_id):
+    rides_to_remove = []
+    flattened_rides_list = []
 
+    for pair in rides_list:
+        flattened_rides_list.extend(pair)
+
+    for i, ride in enumerate(flattened_rides_list):
+        customer_ride_id = ride.get("customer_ride_id_info")
+        try:
+            '''
+            Fetch the ride from the database.
+            '''
+            customer_ride = Customer.objects.get(customer_ride_id=customer_ride_id, driver_id=driver_id)
+
+            '''
+            If status is "Cancelled," mark this pair for removal.
+            '''
+            ride["customer_ride_status_info"] = customer_ride.customer_ride_status
+            if customer_ride.customer_ride_status == "Cancelled":
+                rides_to_remove.append(i)
+
+        except Customer.DoesNotExist:
+            '''
+            Handle the case where the ride is not found.
+            '''
+            raise Exception("Customer does not exist")
+
+    '''
+    Remove pairs marked for removal in reverse order to avoid index issues.
+    '''
+    for i in reversed(rides_to_remove):
+        flattened_rides_list.pop(i)
+
+    '''
+    Convert the modified list back to the original structure
+    '''
+    rides_list = [flattened_rides_list[i:i + 2] for i in range(0, len(flattened_rides_list), 2)]
+
+    return rides_list
 
 def processingPairs(ongoing_sharing_rides_list, driver_id):
     new_ongoing_pair = []
@@ -975,8 +1017,9 @@ def map_driver_customer_app_ride_status(ride_id, new_status):
 def cancel_customer_ride(request):
     serializer = CancelRideSerializer(data=request.data)
     if serializer.is_valid():
-        customer_ride_id = serializer.validated_data['customer_ride_id']
-        customers = Customer.objects.filter(customer_ride_id=customer_ride_id)
+        customer_ride_ids = serializer.validated_data.get('customer_ride_ids', [])
+
+        customers = Customer.objects.filter(customer_ride_id__in=customer_ride_ids)
 
         if customers.exists():
             '''

@@ -7,7 +7,7 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CancelRideSerializer(serializers.Serializer):
-    customer_ride_id = serializers.IntegerField()
+    customer_ride_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
 
 class DriverSerializer(serializers.ModelSerializer):
     class Meta:
