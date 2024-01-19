@@ -541,6 +541,9 @@ def validate_and_update_status(rides_list, driver_id):
     flattened_rides_list = sum(rides_list, [])
 
     for ride in flattened_rides_list:
+        if not isinstance(ride, dict):
+            continue
+
         customer_ride_id = ride.get("customer_ride_id_info")
         try:
             '''
