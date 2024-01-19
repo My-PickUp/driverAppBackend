@@ -656,6 +656,9 @@ def processingPairs(ongoing_sharing_rides_list, driver_id):
     flattened_list = sum(ongoing_sharing_rides_list, [])
 
     for pair in flattened_list:
+        if not isinstance(pair, dict):
+            continue
+
         if pair.get("driver_ride_type_info") == 'Sharing' and pair.get("driver_id_info") == driver_id:
             new_ongoing_pair.append({"customer_name_info": pair.get("customer_name_info"),
                                      "customer_id_info": pair.get("customer_id_info"),
