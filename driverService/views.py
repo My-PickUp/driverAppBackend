@@ -614,6 +614,9 @@ def remove_cancelled_rides(rides_list, driver_id):
         flattened_rides_list.extend(pair)
 
     for i, ride in enumerate(flattened_rides_list):
+        if not isinstance(ride, dict):
+            continue
+
         customer_ride_id = ride.get("customer_ride_id_info")
         try:
             '''
