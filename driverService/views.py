@@ -691,104 +691,16 @@ def processingPairs(ongoing_sharing_rides_list, driver_id):
                                      "customer_drop_address_info": pair.get("customer_drop_address_info")})
     return new_ongoing_pair
 
-# @api_view(['POST'])
-# def start_ride(request):
-#
-#     try:
-#         customer_ride_id = request.data.get('customer_ride_id')
-#         driver_id = request.data.get('driver_id')
-#         ride_type = request.data.get('ride_type')
-#
-#         with transaction.atomic():
-#             valid_ride = Customer.objects.select_for_update().filter(
-#                 customer_ride_id=customer_ride_id,
-#                 driver_id=driver_id,
-#                 customer_ride_status='Upcoming',
-#                 driver__driverride__ride_type=ride_type
-#             ).first()
-#
-#             if not valid_ride:
-#                 return Response({"status": "error", "message": "Invalid customer_ride_id, driver_id, or ride_type"},
-#                                 status=status.HTTP_400_BAD_REQUEST)
-#
-#             '''
-#             Call the helper function to update the customerApp's users_rides_detail table
-#             by updating the ride-status as Ongoing.
-#             '''
-#             update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Ongoing')
-#             print(update_result)
-#
-#             if update_result.get('status_code') == 200:
-#                 '''
-#                 If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
-#                 '''
-#                 valid_ride.customer_ride_status = 'Ongoing'
-#                 valid_ride.save()
-#
-#                 return Response({"status": "success", "message": "Ride started successfully"}, status=status.HTTP_200_OK)
-#             else:
-#                 '''
-#                 If the update fails, return an error response.
-#                 '''
-#                 return Response({"status": "error", "message": "Failed to update customer app ride status"},
-#                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#     except Exception as e:
-#         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#
-# @api_view(['POST'])
-# def end_ride(request):
-#
-#     try:
-#         customer_ride_id = request.data.get('customer_ride_id')
-#         driver_id = request.data.get('driver_id')
-#         ride_type = request.data.get('ride_type')
-#
-#         with transaction.atomic():
-#             valid_ride = Customer.objects.select_for_update().filter(
-#                 customer_ride_id=customer_ride_id,
-#                 driver_id=driver_id,
-#                 customer_ride_status='Ongoing',
-#                 driver__driverride__ride_type=ride_type
-#             ).first()
-#
-#             if not valid_ride:
-#                 return Response({"status": "error", "message": "Invalid customer_ride_id, driver_id, or ride_type"},
-#                                 status=status.HTTP_400_BAD_REQUEST)
-#
-#             '''
-#             Call the helper function to update the customerApp's users_rides_detail table
-#             by updating the ride-status as Completed.
-#             '''
-#             update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
-#             print(update_result)
-#
-#             if update_result.get('status_code') == 200:
-#                 '''
-#                 If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
-#                 '''
-#                 valid_ride.customer_ride_status = 'Completed'
-#                 valid_ride.save()
-#
-#                 return Response({"status": "success", "message": "Ride ended successfully"},
-#                                 status=status.HTTP_200_OK)
-#             else:
-#                 '''
-#                 If the update fails, return an error response.
-#                 '''
-#                 return Response({"status": "error", "message": "Failed to update customer app ride status"},
-#                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-#     except Exception as e:
-#         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 @api_view(['POST'])
 def start_ride(request):
+
     try:
         customer_ride_id = request.data.get('customer_ride_id')
         driver_id = request.data.get('driver_id')
         ride_type = request.data.get('ride_type')
 
         with transaction.atomic():
-            valid_ride = Customer.objects.filter(
+            valid_ride = Customer.objects.select_for_update().filter(
                 customer_ride_id=customer_ride_id,
                 driver_id=driver_id,
                 customer_ride_status='Upcoming',
@@ -799,27 +711,40 @@ def start_ride(request):
                 return Response({"status": "error", "message": "Invalid customer_ride_id, driver_id, or ride_type"},
                                 status=status.HTTP_400_BAD_REQUEST)
 
+            '''
+            Call the helper function to update the customerApp's users_rides_detail table
+            by updating the ride-status as Ongoing.
+            '''
             update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Ongoing')
+            print(update_result)
 
             if update_result.get('status_code') == 200:
-                update_ride_status(valid_ride, 'Ongoing')
+                '''
+                If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
+                '''
+                valid_ride.customer_ride_status = 'Ongoing'
+                valid_ride.save()
+
                 return Response({"status": "success", "message": "Ride started successfully"}, status=status.HTTP_200_OK)
             else:
+                '''
+                If the update fails, return an error response.
+                '''
                 return Response({"status": "error", "message": "Failed to update customer app ride status"},
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 def end_ride(request):
+
     try:
         customer_ride_id = request.data.get('customer_ride_id')
         driver_id = request.data.get('driver_id')
         ride_type = request.data.get('ride_type')
 
         with transaction.atomic():
-            valid_ride = Customer.objects.filter(
+            valid_ride = Customer.objects.select_for_update().filter(
                 customer_ride_id=customer_ride_id,
                 driver_id=driver_id,
                 customer_ride_status='Ongoing',
@@ -830,56 +755,131 @@ def end_ride(request):
                 return Response({"status": "error", "message": "Invalid customer_ride_id, driver_id, or ride_type"},
                                 status=status.HTTP_400_BAD_REQUEST)
 
+            '''
+            Call the helper function to update the customerApp's users_rides_detail table
+            by updating the ride-status as Completed.
+            '''
             update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
+            print(update_result)
 
             if update_result.get('status_code') == 200:
-                update_ride_status(valid_ride, 'Completed')
+                '''
+                If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
+                '''
+                valid_ride.customer_ride_status = 'Completed'
+                valid_ride.save()
+
                 return Response({"status": "success", "message": "Ride ended successfully"},
                                 status=status.HTTP_200_OK)
             else:
+                '''
+                If the update fails, return an error response.
+                '''
                 return Response({"status": "error", "message": "Failed to update customer app ride status"},
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-def update_ride_status(ride, new_status):
-    ride.customer_ride_status = new_status
-    ride.save()
-def map_driver_customer_app_ride_status(ride_id, new_status):
-
-    url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
-    headers = {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-    }
-    data = {
-        'newStatus': new_status,
-    }
-
-    try:
-        response = requests.put(url, headers=headers, json=data)
-        response.raise_for_status()
-
-        '''
-        Including the status code in the response dictionary.
-        '''
-        result = {
-            "status": "success",
-            "status_code": response.status_code,
-            "data": response.json()
-        }
-        return result
-    except requests.exceptions.RequestException as e:
-        '''
-        Include the status code in the response dictionary.
-        '''
-        result = {
-            "status": "error",
-            "status_code": getattr(e.response, 'status_code', None),
-            "message": str(e),
-        }
-        return result
+# @api_view(['POST'])
+# def start_ride(request):
+#     try:
+#         customer_ride_id = request.data.get('customer_ride_id')
+#         driver_id = request.data.get('driver_id')
+#         ride_type = request.data.get('ride_type')
+#
+#         with transaction.atomic():
+#             valid_ride = Customer.objects.filter(
+#                 customer_ride_id=customer_ride_id,
+#                 driver_id=driver_id,
+#                 customer_ride_status='Upcoming',
+#                 driver__driverride__ride_type=ride_type
+#             ).first()
+#
+#             if not valid_ride:
+#                 return Response({"status": "error", "message": "Invalid customer_ride_id, driver_id, or ride_type"},
+#                                 status=status.HTTP_400_BAD_REQUEST)
+#
+#             update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Ongoing')
+#
+#             if update_result.get('status_code') == 200:
+#                 update_ride_status(valid_ride, 'Ongoing')
+#                 return Response({"status": "success", "message": "Ride started successfully"}, status=status.HTTP_200_OK)
+#             else:
+#                 return Response({"status": "error", "message": "Failed to update customer app ride status"},
+#                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#
+#     except Exception as e:
+#         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#
+# @api_view(['POST'])
+# def end_ride(request):
+#     try:
+#         customer_ride_id = request.data.get('customer_ride_id')
+#         driver_id = request.data.get('driver_id')
+#         ride_type = request.data.get('ride_type')
+#
+#         with transaction.atomic():
+#             valid_ride = Customer.objects.filter(
+#                 customer_ride_id=customer_ride_id,
+#                 driver_id=driver_id,
+#                 customer_ride_status='Ongoing',
+#                 driver__driverride__ride_type=ride_type
+#             ).first()
+#
+#             if not valid_ride:
+#                 return Response({"status": "error", "message": "Invalid customer_ride_id, driver_id, or ride_type"},
+#                                 status=status.HTTP_400_BAD_REQUEST)
+#
+#             update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
+#
+#             if update_result.get('status_code') == 200:
+#                 update_ride_status(valid_ride, 'Completed')
+#                 return Response({"status": "success", "message": "Ride ended successfully"},
+#                                 status=status.HTTP_200_OK)
+#             else:
+#                 return Response({"status": "error", "message": "Failed to update customer app ride status"},
+#                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#
+#     except Exception as e:
+#         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#
+# def update_ride_status(ride, new_status):
+#     ride.customer_ride_status = new_status
+#     ride.save()
+# def map_driver_customer_app_ride_status(ride_id, new_status):
+#
+#     url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
+#     headers = {
+#         'accept': 'application/json',
+#         'Content-Type': 'application/json',
+#     }
+#     data = {
+#         'newStatus': new_status,
+#     }
+#
+#     try:
+#         response = requests.put(url, headers=headers, json=data)
+#         response.raise_for_status()
+#
+#         '''
+#         Including the status code in the response dictionary.
+#         '''
+#         result = {
+#             "status": "success",
+#             "status_code": response.status_code,
+#             "data": response.json()
+#         }
+#         return result
+#     except requests.exceptions.RequestException as e:
+#         '''
+#         Include the status code in the response dictionary.
+#         '''
+#         result = {
+#             "status": "error",
+#             "status_code": getattr(e.response, 'status_code', None),
+#             "message": str(e),
+#         }
+#         return result
 
 @api_view(['POST'])
 def cancel_customer_ride(request):
