@@ -757,7 +757,7 @@ def end_ride(request):
 
             '''
             Call the helper function to update the customerApp's users_rides_detail table
-            by updating the ride-status as Ongoing.
+            by updating the ride-status as Completed.
             '''
             update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
             print(update_result)
