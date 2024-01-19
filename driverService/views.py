@@ -479,8 +479,7 @@ def fetch_customer_rides(request, driver_id):
                 driver_phone
             )
             futures.append(future)
-
-            print(f"Task submitted - Iteration {i + 1}")
+            print(f"Private Ride - Task submitted - Iteration {i + 1}, Customer Ride ID: {customer_ride_id_info}")
 
         '''
         Processing sharing rides.
@@ -490,21 +489,36 @@ def fetch_customer_rides(request, driver_id):
                 pair = [sharing_queryset[i], sharing_queryset[i + 1]]
                 pairs.append(pair)
 
-                customer_ride_id_info = sharing_queryset[i]['customer_ride_id_info']
-                customer_ride_datetime = sharing_queryset[i]['customer_ride_datetime']
-                driver_phone = sharing_queryset[i]['driver_phone_info']
+                customer_ride_id_info_1 = sharing_queryset[i]['customer_ride_id_info']
+                customer_ride_datetime_1 = sharing_queryset[i]['customer_ride_datetime']
+                driver_phone_1 = sharing_queryset[i]['driver_phone_info']
 
-                customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+                customer_ride_datetime_str_1 = DjangoJSONEncoder().default(customer_ride_datetime_1)
 
-                future = executor.submit(
+                customer_ride_id_info_2 = sharing_queryset[i + 1]['customer_ride_id_info']
+                customer_ride_datetime_2 = sharing_queryset[i + 1]['customer_ride_datetime']
+                driver_phone_2 = sharing_queryset[i + 1]['driver_phone_info']
+
+                customer_ride_datetime_str_2 = DjangoJSONEncoder().default(customer_ride_datetime_2)
+
+                future_1 = executor.submit(
                     reschedule_and_update,
-                    customer_ride_id_info,
-                    customer_ride_datetime_str,
-                    driver_phone
+                    customer_ride_id_info_1,
+                    customer_ride_datetime_str_1,
+                    driver_phone_1
                 )
-                futures.append(future)
+                futures.append(future_1)
 
-                print(f"Task submitted - Iteration {i + 1}")
+                future_2 = executor.submit(
+                    reschedule_and_update,
+                    customer_ride_id_info_2,
+                    customer_ride_datetime_str_2,
+                    driver_phone_2
+                )
+                futures.append(future_2)
+
+                print(
+                    f"Sharing Ride - Task submitted - Iteration {i + 1}, Customer Ride ID 1: {customer_ride_id_info_1}, Customer Ride ID 2: {customer_ride_id_info_2}")
 
     '''
     Wait for all submitted tasks to complete.
