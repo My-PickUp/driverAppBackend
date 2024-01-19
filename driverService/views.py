@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 import requests
 from django.core.serializers.json import DjangoJSONEncoder
+from django.template.response import ContentNotRenderedError
 from django.utils.timezone import make_aware
 from django.db.models import F, Q
 import jwt
@@ -522,9 +523,13 @@ def fetch_all_ongoing_sharing_customer_rides(request, driver_id):
 
     global ongoing_sharing_rides_list
 
-    ongoing_sharing_rides_list = validate_and_update_status(ongoing_sharing_rides_list, driver_id)
-    ongoing_sharing_rides_list = remove_completed_rides(ongoing_sharing_rides_list, driver_id)
-    ongoing_sharing_rides_list = remove_cancelled_rides(ongoing_sharing_rides_list, driver_id)
+    try:
+        ongoing_sharing_rides_list = validate_and_update_status(ongoing_sharing_rides_list, driver_id)
+        ongoing_sharing_rides_list = remove_completed_rides(ongoing_sharing_rides_list, driver_id)
+        ongoing_sharing_rides_list = remove_cancelled_rides(ongoing_sharing_rides_list, driver_id)
+
+    except ContentNotRenderedError:
+        return JsonResponse({'error': 'Content not rendered, please render it using the API fetchCustomerRides'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     new_pair = processingPairs(ongoing_sharing_rides_list, driver_id)
 
@@ -553,7 +558,7 @@ def validate_and_update_status(rides_list, driver_id):
             '''
             Handle the case where the ride is not found.
             '''
-            return Response("Ride not found", status= status.HTTP_404_NOT_FOUND)
+            return JsonResponse({"error": "Customer does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
     return rides_list
 
@@ -583,7 +588,7 @@ def remove_completed_rides(rides_list, driver_id):
             '''
             Handle the case where the ride is not found.
             '''
-            raise Exception("Customer does not exist")
+            return JsonResponse({"error": "Customer does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
     '''
     Remove pairs marked for removal in reverse order to avoid index issues.
@@ -624,7 +629,7 @@ def remove_cancelled_rides(rides_list, driver_id):
             '''
             Handle the case where the ride is not found.
             '''
-            raise Exception("Customer does not exist")
+            return JsonResponse({"error": "Customer does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
     '''
     Remove pairs marked for removal in reverse order to avoid index issues.
