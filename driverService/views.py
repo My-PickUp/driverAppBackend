@@ -846,40 +846,40 @@ def end_ride(request):
 # def update_ride_status(ride, new_status):
 #     ride.customer_ride_status = new_status
 #     ride.save()
-# def map_driver_customer_app_ride_status(ride_id, new_status):
-#
-#     url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
-#     headers = {
-#         'accept': 'application/json',
-#         'Content-Type': 'application/json',
-#     }
-#     data = {
-#         'newStatus': new_status,
-#     }
-#
-#     try:
-#         response = requests.put(url, headers=headers, json=data)
-#         response.raise_for_status()
-#
-#         '''
-#         Including the status code in the response dictionary.
-#         '''
-#         result = {
-#             "status": "success",
-#             "status_code": response.status_code,
-#             "data": response.json()
-#         }
-#         return result
-#     except requests.exceptions.RequestException as e:
-#         '''
-#         Include the status code in the response dictionary.
-#         '''
-#         result = {
-#             "status": "error",
-#             "status_code": getattr(e.response, 'status_code', None),
-#             "message": str(e),
-#         }
-#         return result
+def map_driver_customer_app_ride_status(ride_id, new_status):
+
+    url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+    }
+    data = {
+        'newStatus': new_status,
+    }
+
+    try:
+        response = requests.put(url, headers=headers, json=data)
+        response.raise_for_status()
+
+        '''
+        Including the status code in the response dictionary.
+        '''
+        result = {
+            "status": "success",
+            "status_code": response.status_code,
+            "data": response.json()
+        }
+        return result
+    except requests.exceptions.RequestException as e:
+        '''
+        Include the status code in the response dictionary.
+        '''
+        result = {
+            "status": "error",
+            "status_code": getattr(e.response, 'status_code', None),
+            "message": str(e),
+        }
+        return result
 
 @api_view(['POST'])
 def cancel_customer_ride(request):
