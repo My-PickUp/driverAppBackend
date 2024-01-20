@@ -83,6 +83,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://mypickup-react.pages.dev",
     "https://my-pickup-techyhk.vercel.app",
     "https://*",
+    "http://*",
 ]
 
 CORS_ALLOW_METHODS = [
