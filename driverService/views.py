@@ -3,6 +3,7 @@ import json
 import random
 from concurrent.futures import ThreadPoolExecutor
 from django.db.utils import IntegrityError
+from django.db import connection
 import threading
 import requests
 from django.core.serializers.json import DjangoJSONEncoder
@@ -747,18 +748,23 @@ def start_ride(request):
                 return Response({"status": "error", "message": "Invalid customer_ride_id, driver_id, or ride_type"},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Ongoing')
-            print(update_result)
+            #update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Ongoing')
+            #print(update_result)
 
-            if update_result.get('status_code') == 200:
-                valid_ride.customer_ride_status = 'Ongoing'
-                valid_ride.save()
+            '''
+            Executing the SQL query to update the ride status.
+            '''
 
-                return Response({"status": "success", "message": "Ride started successfully"},
+            with connection.cursor() as cursor:
+                cursor.execute("UPDATE users_rides_detail SET ride_status = 'Ongoing' WHERE id = %s",
+                               [customer_ride_id])
+
+            valid_ride.customer_ride_status = 'Ongoing'
+            valid_ride.save()
+
+            return Response({"status": "success", "message": "Ride started successfully"},
                                 status=status.HTTP_200_OK)
-            else:
-                return Response({"status": "error", "message": "Failed to update customer app ride status"},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     except IntegrityError as e:
         transaction.set_rollback(True)
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -789,32 +795,28 @@ def end_ride(request):
             Call the helper function to update the customerApp's users_rides_detail table
             by updating the ride-status as Completed.
             '''
-            update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
-            print(update_result)
+            #update_result = map_driver_customer_app_ride_status(customer_ride_id, 'Completed')
+            #print(update_result)
 
-            if update_result.get('status_code') == 200:
-                '''
-                If the update is successful, proceed with marking the Driver ride as ongoing in the driverService Customer table.
-                '''
-                valid_ride.customer_ride_status = 'Completed'
-                valid_ride.save()
+            '''
+            Executing the SQL query to update the ride status.
+            '''
 
+            with connection.cursor() as cursor:
+                cursor.execute("UPDATE users_rides_detail SET ride_status = 'Completed' WHERE id = %s",
+                               [customer_ride_id])
 
-                return Response({"status": "success", "message": "Ride ended successfully"},
-                                status=status.HTTP_200_OK)
-            else:
-                '''
-                If the update fails, return an error response.
-                '''
-                return Response({"status": "error", "message": "Failed to update customer app ride status"},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            valid_ride.customer_ride_status = 'Completed'
+            valid_ride.save()
+
+            return Response({"status": "success", "message": "Ride ended successfully"},
+                            status=status.HTTP_200_OK)
 
     except IntegrityError as e:
         transaction.set_rollback(True)
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return Response({"status": "error", "message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 @api_view(['POST'])
