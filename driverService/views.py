@@ -403,10 +403,45 @@ def update_customer_sharing_rides(customer_ride_id, driver_phone):
     except requests.exceptions.RequestException as e:
         print(f"Error updating customer sharing rides table: {e}")
 
-def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, driver_phone):
+def map_driver_customer_app_ride_status(ride_id, new_status):
+
+    url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+    }
+    data = {
+        'newStatus': new_status,
+    }
+
+    try:
+        response = requests.put(url, headers=headers, json=data)
+        response.raise_for_status()
+
+        '''
+        Including the status code in the response dictionary.
+        '''
+        result = {
+            "status": "success",
+            "status_code": response.status_code,
+            "data": response.json()
+        }
+        return result
+    except requests.exceptions.RequestException as e:
+        '''
+        Include the status code in the response dictionary.
+        '''
+        result = {
+            "status": "error",
+            "status_code": getattr(e.response, 'status_code', None),
+            "message": str(e),
+        }
+        return result
+
+def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, driver_phone, ride_status):
     reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
     update_customer_sharing_rides(customer_ride_id_info, driver_phone)
-
+    map_driver_customer_app_ride_status(customer_ride_id_info, ride_status)
 
 
 '''
@@ -472,6 +507,7 @@ def fetch_customer_rides(request, driver_id):
             customer_ride_id_info = private_queryset[i]['customer_ride_id_info']
             customer_ride_datetime = private_queryset[i]['customer_ride_datetime']
             driver_phone = private_queryset[i]['driver_phone_info']
+            ride_status = private_queryset[i]['customer_ride_status_info']
 
             customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
 
@@ -479,7 +515,8 @@ def fetch_customer_rides(request, driver_id):
                 reschedule_and_update,
                 customer_ride_id_info,
                 customer_ride_datetime_str,
-                driver_phone
+                driver_phone,
+                ride_status
             )
             futures.append(future)
             print(f"Private Ride - Task submitted - Iteration {i + 1}, Customer Ride ID: {customer_ride_id_info}")
@@ -495,12 +532,14 @@ def fetch_customer_rides(request, driver_id):
                 customer_ride_id_info_1 = sharing_queryset[i]['customer_ride_id_info']
                 customer_ride_datetime_1 = sharing_queryset[i]['customer_ride_datetime']
                 driver_phone_1 = sharing_queryset[i]['driver_phone_info']
+                ride_status_1 = sharing_queryset[i]['customer_ride_status_info']
 
                 customer_ride_datetime_str_1 = DjangoJSONEncoder().default(customer_ride_datetime_1)
 
                 customer_ride_id_info_2 = sharing_queryset[i + 1]['customer_ride_id_info']
                 customer_ride_datetime_2 = sharing_queryset[i + 1]['customer_ride_datetime']
                 driver_phone_2 = sharing_queryset[i + 1]['driver_phone_info']
+                ride_status_2 = sharing_queryset[i + 1]['customer_ride_status_info']
 
                 customer_ride_datetime_str_2 = DjangoJSONEncoder().default(customer_ride_datetime_2)
 
@@ -508,7 +547,8 @@ def fetch_customer_rides(request, driver_id):
                     reschedule_and_update,
                     customer_ride_id_info_1,
                     customer_ride_datetime_str_1,
-                    driver_phone_1
+                    driver_phone_1,
+                    ride_status_1
                 )
                 futures.append(future_1)
 
@@ -516,7 +556,8 @@ def fetch_customer_rides(request, driver_id):
                     reschedule_and_update,
                     customer_ride_id_info_2,
                     customer_ride_datetime_str_2,
-                    driver_phone_2
+                    driver_phone_2,
+                    ride_status_2
                 )
                 futures.append(future_2)
 
@@ -694,40 +735,7 @@ def processingPairs(ongoing_sharing_rides_list, driver_id):
                                      "customer_drop_address_info": pair.get("customer_drop_address_info")})
     return new_ongoing_pair
 
-def map_driver_customer_app_ride_status(ride_id, new_status):
 
-    url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
-    headers = {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-    }
-    data = {
-        'newStatus': new_status,
-    }
-
-    try:
-        response = requests.put(url, headers=headers, json=data)
-        response.raise_for_status()
-
-        '''
-        Including the status code in the response dictionary.
-        '''
-        result = {
-            "status": "success",
-            "status_code": response.status_code,
-            "data": response.json()
-        }
-        return result
-    except requests.exceptions.RequestException as e:
-        '''
-        Include the status code in the response dictionary.
-        '''
-        result = {
-            "status": "error",
-            "status_code": getattr(e.response, 'status_code', None),
-            "message": str(e),
-        }
-        return result
 
 @api_view(['POST'])
 def start_ride(request):
