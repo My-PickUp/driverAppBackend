@@ -321,6 +321,7 @@ def form_upload_response(request):
 
         for customers in ride_detail['customers']:
             customer_id = customers['customer_id']
+            customer_ride_id = customers['customer_ride_id']
 
             print(f"Processing ride_detail: {ride_detail}")
 
@@ -330,7 +331,8 @@ def form_upload_response(request):
                 ride_type=ride_type,
                 ride_date_time=ride_date_time,
                 driver=driver,
-                customer_id = customer_id
+                customer_id = customer_id,
+                customer_ride_id = customer_ride_id
             ).first()
 
             ride = None
@@ -350,7 +352,9 @@ def form_upload_response(request):
 
                     driver=driver,
 
-                    customer_id=customer_id
+                    customer_id=customer_id,
+
+                    customer_ride_id = customer_ride_id
                 )
 
             for customer_detail in ride_detail['customers']:
@@ -935,19 +939,32 @@ def update_customer_driver(request, customer_ride_id):
 
     if request.method == 'PUT':
         '''
-        Include only the driver_id field for partial updates.
+        Including only the driver_id field for partial updates.
         '''
         serializer = CustomerSerializer(customer, data={'driver_id': request.data.get('driver_id')}, partial=True)
         if serializer.is_valid():
             serializer.save()
 
             '''
-            Now, update the related driver separately.
+            Update the related driver in Customer table.
             '''
-            driver_id = request.data.get('driver_id')
-            if driver_id is not None:
-                customer.driver_id = driver_id
+            new_driver_id = request.data.get('driver_id')
+            if new_driver_id is not None:
+                customer.driver_id = new_driver_id
                 customer.save()
+
+                '''
+                Update the driver_id in the DriverRide table.
+                '''
+                try:
+                    driver_ride = DriverRide.objects.get(customer_ride_id=customer.customer_ride_id)
+                    driver_ride.driver_id = new_driver_id
+                    driver_ride.save()
+                except DriverRide.DoesNotExist:
+                    '''
+                    Handle the case where DriverRide entry doesn't exist for the given customer
+                    '''
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             return Response({'status': 'Customer driver_id updated successfully'},
                             status=status.HTTP_200_OK)

@@ -22,6 +22,7 @@ class DriverVerificationCode(models.Model):
 class DriverRide(models.Model):
     ride_id = models.AutoField(primary_key = True)
     customer_id = models.IntegerField(null=True, blank=True)
+    customer_ride_id = models.IntegerField(null=True, blank=True)
     ride_date_time = models.DateTimeField()
     driver = models.ForeignKey(Driver, to_field='driver_id',on_delete=models.CASCADE)
     ride_type = models.CharField(max_length=20, choices=[("Sharing", "Sharing"), ("Private", "Private")])
