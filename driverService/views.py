@@ -60,6 +60,52 @@ def create_driver(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['POST'])
+def manage_driver(request):
+    if request.method == 'POST':
+        data = request.data
+
+        if 'driver_id' in data:
+            driver_id = data.get('driver_id')
+
+            try:
+                driver = Driver.objects.get(driver_id= driver_id)
+            except Driver.DoesNotExist:
+                return Response({'error': 'Driver not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            '''
+            Toggle the driver status (active to inactive and vice versa.
+            '''
+            driver_status = data.get('driver_status', '').capitalize()
+            if driver_status in ['Active', 'Inactive']:
+                driver.driver_status = driver_status
+
+            '''
+            Reshuffle vehicle number.
+            '''
+            if 'vehicle_number' in data:
+                vehicle_number = data.get('vehicle_number')
+                driver.vehicle_number = vehicle_number
+
+            driver.save()
+
+            serializer = DriverSerializer(driver)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        else:
+            existing_driver = Driver.objects.filter(phone=data['phone']).first()
+            if existing_driver:
+                return Response({'error': 'Driver with this phone number already exists.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = DriverSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'error': 'Invalid request method.'}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def generate_otp(request):
