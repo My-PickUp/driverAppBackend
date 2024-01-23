@@ -298,6 +298,10 @@ def form_upload_response(request):
         customer_pickup_address = row.get('pickup_address', '')
         customer_drop_address = row.get('drop_address', '')
         customer_phone = row.get('customer_phone', '')
+        customer_lat_pickup = row.get('customer_lat_pickup', '')
+        customer_lon_pickup = row.get('customer_lon_pickup', '')
+        customer_lat_drop = row.get('customer_lat_drop', '')
+        customer_lon_drop = row.get('customer_lon_drop', '')
 
         ride_details.append({
             "ride_date_time": ride_date_time,
@@ -313,7 +317,11 @@ def form_upload_response(request):
                     "customer_name":customer_name,
                     "customer_pickup_address":customer_pickup_address,
                     "customer_drop_address":customer_drop_address,
-                    "customer_phone": customer_phone
+                    "customer_phone": customer_phone,
+                    "customer_lat_pickup": customer_lat_pickup,
+                    "customer_lon_pickup": customer_lon_pickup,
+                    "customer_lat_drop": customer_lat_drop,
+                    "customer_lon_drop": customer_lon_drop
 
                 }
             ]
