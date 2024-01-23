@@ -224,6 +224,10 @@ def get_customer_details(request):
     users.id AS customer_id,
     users.phone_number AS customer_phone,
     users.name AS customer_name,
+    users_addresses_pickup.latitude AS customer_lat_pickup,
+    users_addresses_pickup.longitude AS customer_lon_pickup,
+    users_addresses_drop.latitude AS customer_lat_drop,
+    users_addresses_drop.longitude AS customer_lon_drop,
     users_rides_detail.id AS customer_ride_id,
     users_rides_detail.pickup_address_type,
     users_rides_detail.pickup_address,
@@ -237,6 +241,12 @@ JOIN
     users_subscription ON users.id = users_subscription.user_id
 JOIN
     users_rides_detail ON users_rides_detail.user_id = users.id
+JOIN
+    users_addresses AS users_addresses_pickup ON users_addresses_pickup.phone_number = users.phone_number
+    AND users_rides_detail.pickup_address_type = users_addresses_pickup.address_type
+JOIN
+    users_addresses AS users_addresses_drop ON users_addresses_drop.phone_number = users.phone_number
+    AND users_rides_detail.drop_address_type = users_addresses_drop.address_type
 WHERE
     users_rides_detail.ride_status = 'Upcoming'
 ORDER BY
