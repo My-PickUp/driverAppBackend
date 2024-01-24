@@ -385,6 +385,10 @@ def form_upload_response(request):
                 customer_pickup_address = customer_detail.get('customer_pickup_address', None)
                 customer_drop_address = customer_detail.get('customer_drop_address', None)
                 customer_phone = customer_detail.get('customer_phone', None)
+                customer_lat_pickup = customer_detail.get('customer_lat_pickup', None)
+                customer_lon_pickup = customer_detail.get('customer_lon_pickup', None)
+                customer_lat_drop = customer_detail.get('customer_lat_drop', None)
+                customer_lon_drop = customer_detail.get('customer_lon_drop', None)
 
                 customer_exists = Customer.objects.filter(
                     customer_id=customer_id,
@@ -395,7 +399,11 @@ def form_upload_response(request):
                     name = customer_name,
                     phone = customer_phone,
                     pickup_address = customer_pickup_address,
-                    drop_address = customer_drop_address
+                    drop_address = customer_drop_address,
+                    customer_lat_pickup = customer_lat_pickup,
+                    customer_lon_pickup = customer_lon_pickup,
+                    customer_lat_drop = customer_lat_drop,
+                    customer_lon_drop = customer_lon_drop
                 ).first()
 
                 copassenger_exists = Copassenger.objects.filter(
@@ -417,7 +425,11 @@ def form_upload_response(request):
                         name= customer_name,
                         phone = customer_phone,
                         pickup_address=customer_pickup_address,
-                        drop_address=customer_drop_address
+                        drop_address=customer_drop_address,
+                        customer_lat_pickup = customer_lat_pickup,
+                        customer_lon_pickup = customer_lon_pickup,
+                        customer_lat_drop = customer_lat_drop,
+                        customer_lon_drop = customer_lon_drop
                     )
 
                     if created or (drop_priority is not None and customer.drop_priority is None):

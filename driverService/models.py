@@ -42,6 +42,10 @@ class Customer(models.Model):
     customer_ride_status = models.CharField(max_length=20, choices=[("Upcoming", "Upcoming"), ("Ongoing", "Ongoing"),
                                                                     ("Cancelled", "Cancelled"), ("Completed", "Completed")], null=True, blank=True)
 
+    customer_lat_pickup = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    customer_lon_pickup = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    customer_lat_drop = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    customer_lon_drop = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
 
 class Copassenger(models.Model):
     co_passenger = models.ForeignKey(Customer, to_field='id', on_delete=models.CASCADE)
