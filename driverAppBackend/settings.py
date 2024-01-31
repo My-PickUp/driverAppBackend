@@ -111,10 +111,10 @@ CORS_ALLOW_METHODS = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'tess',  # Your database name
-        'USER': 'chityanjs',  # Your username
-        'PASSWORD': 'Nfqyolj4Swz1',  # Your password
-        'HOST': 'ep-plain-wildflower-79539467.ap-southeast-1.aws.neon.tech',  # Your host
+        'NAME': 'Customer_Driver',  # Your database name
+        'USER': 'telkestech@gmail.com',  # Your username
+        'PASSWORD': 'ShXixZT5YV6u',  # Your password
+        'HOST': 'ep-red-bird-68334114.ap-southeast-1.aws.neon.tech',  # Your host
         'PORT': '5432',  # Your port (if not default)
         'OPTIONS': {
             'sslmode': 'require',  # To enable SSL
