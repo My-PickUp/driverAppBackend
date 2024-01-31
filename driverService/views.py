@@ -447,7 +447,7 @@ def form_upload_response(request):
 
 def reschedule_ride(customer_ride_id, ride_date_time):
 
-    url = f'https://customer-mypickup.souvikmondal.live/reschedule_ride/'
+    url = f'https://fastapi-backend-nxx4.onrender.com/reschedule_ride/'
 
     payload = json.dumps({
   "ride_id": customer_ride_id,
@@ -469,7 +469,7 @@ def reschedule_ride(customer_ride_id, ride_date_time):
         print(f"Error making reschedule request: {e}")
 
 def update_customer_sharing_rides(customer_ride_id, driver_phone):
-    update_url = f'https://customer-mypickup.souvikmondal.live/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
+    update_url = f'https://fastapi-backend-nxx4.onrender.com/edit_ride_driver_phone/{customer_ride_id}?driver_phone={driver_phone}'
     print(update_url)
 
     try:
@@ -485,7 +485,7 @@ def update_customer_sharing_rides(customer_ride_id, driver_phone):
 
 def map_driver_customer_app_ride_status(ride_id, new_status):
 
-    url = f'https://customer-mypickup.souvikmondal.live/updateRideStatus?ride_id={ride_id}'
+    url = f'https://fastapi-backend-nxx4.onrender.com/updateRideStatus?ride_id={ride_id}'
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json',
