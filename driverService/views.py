@@ -959,6 +959,10 @@ def fetch_all_ongoing_private_customer_rides(request, driver_id):
         customer_ride_status_info=F('customer_ride_status'),
         customer_pickup_address_info=F('pickup_address'),
         customer_drop_address_info=F('drop_address'),
+        customer_lat_pickup_info=F('customer_lat_pickup'),
+        customer_lon_pickup_info=F('customer_lon_pickup'),
+        customer_lat_drop_info=F('customer_lat_drop'),
+        customer_lon_drop_info=F('customer_lon_drop')
     ).order_by('ride_date_time').distinct()
 
     pairs = []
