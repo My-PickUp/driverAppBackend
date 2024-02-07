@@ -532,6 +532,7 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
 '''
 @api_view(['GET'])
 def fetch_customer_rides(request, driver_id):
+    current_date = datetime.today().date()
 
     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
@@ -555,12 +556,10 @@ def fetch_customer_rides(request, driver_id):
     ).order_by('ride_date_time').distinct()
 
     sharing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Upcoming', driver_id=driver_id) |
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Ongoing', driver_id=driver_id) |
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Completed',
-        driver_id=driver_id) |
-        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', customer_ride_status='Cancelled',
-        driver_id=driver_id)
+        Q(drop_priority__isnull=False, driver__driverride__ride_type='Sharing', driver_id=driver_id) &
+        (Q(customer_ride_status='Upcoming') | Q(customer_ride_status='Ongoing') |
+         (Q(customer_ride_status='Completed') & Q(ride_date_time__date=current_date)) |
+         (Q(customer_ride_status='Cancelled') & Q(ride_date_time__date=current_date)))
     ).values(
         customer_name_info=F('name'),
         customer_id_info=F('customer_id'),
