@@ -249,8 +249,11 @@ JOIN
     AND users_rides_detail.drop_address_type = users_addresses_drop.address_type
 WHERE
     users_rides_detail.ride_status = 'Upcoming'
+    AND users_rides_detail.ride_date_time >= CURRENT_DATE 
+    AND users_rides_detail.ride_date_time < CURRENT_DATE + INTERVAL '1 week'
 ORDER BY
     users_rides_detail.ride_date_time;
+
 
             """
             cursor.execute(query)
