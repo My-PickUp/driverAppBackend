@@ -247,7 +247,7 @@ JOIN
 JOIN
     users_addresses AS users_addresses_drop ON users_addresses_drop.phone_number = users.phone_number
     AND users_rides_detail.drop_address_type = users_addresses_drop.address_type
-
+WHERE users_rides_detail.ride_status = 'Upcoming'
 ORDER BY
     users_rides_detail.ride_date_time;
 
