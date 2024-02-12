@@ -210,15 +210,15 @@ def get_customer_details(request):
     try:
         with connections['default'].cursor() as cursor:
             query = """
-            SELECT DISTINCT ON (users_rides_detail.ride_date_time)
+            SELECT DISTINCT
     CASE EXTRACT(DOW FROM users_rides_detail.ride_date_time)
-        WHEN 0 THEN 'Sunday'
         WHEN 1 THEN 'Monday'
         WHEN 2 THEN 'Tuesday'
         WHEN 3 THEN 'Wednesday'
         WHEN 4 THEN 'Thursday'
         WHEN 5 THEN 'Friday'
         WHEN 6 THEN 'Saturday'
+        WHEN 0 THEN 'Sunday'
         ELSE 'Unknown Day'
     END AS day_of_week,
     users.id AS customer_id,
@@ -247,8 +247,7 @@ JOIN
 JOIN
     users_addresses AS users_addresses_drop ON users_addresses_drop.phone_number = users.phone_number
     AND users_rides_detail.drop_address_type = users_addresses_drop.address_type
-WHERE
-    users_rides_detail.ride_status = 'Upcoming'
+
 ORDER BY
     users_rides_detail.ride_date_time;
 
