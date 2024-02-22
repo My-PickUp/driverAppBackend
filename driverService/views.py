@@ -87,6 +87,10 @@ def manage_driver(request):
                 vehicle_number = data.get('vehicle_number')
                 driver.vehicle_number = vehicle_number
 
+            if 'track_url' in data:
+                track_url = data.get('track_url')
+                driver.track_url = track_url
+
             driver.save()
 
             serializer = DriverSerializer(driver)
