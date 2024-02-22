@@ -114,6 +114,10 @@ def manage_driver(request):
 @api_view(['POST'])
 def generate_otp(request):
     phone_number = request.data.get('phone')
+    driver_status = request.data.get('driver_status')
+    if driver_status == 'Inactive':
+        return Response({'error': 'Driver is inactive.'}, status=status.HTTP_404_NOT_FOUND)
+
     driver = Driver.objects.filter(phone=phone_number).first()
     if not driver:
         return Response({'error':'Driver is not found with this phone number.'}, status=status.HTTP_404_NOT_FOUND)
