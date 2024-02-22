@@ -115,12 +115,10 @@ def manage_driver(request):
 def generate_otp(request):
     phone_number = request.data.get('phone')
     driver_status = request.data.get('driver_status')
-    driver = Driver.objects.filter(phone=phone_number).first()
+    driver = Driver.objects.filter(phone=phone_number, driver_status = 'Active').first()
 
     if not driver:
         return Response({'error':'Driver is not found with this phone number.'}, status=status.HTTP_404_NOT_FOUND)
-    if driver_status == 'Inactive':
-        return Response({'error': 'Driver is inactive.'}, status=status.HTTP_404_NOT_FOUND)
 
     otp = ''.join(random.choices('0123456789', k=6))
     verification_code = DriverVerificationCode.objects.create(
@@ -147,7 +145,6 @@ def generate_otp(request):
 def verify_otp(request):
     phone_number = request.data.get('phone')
     entered_code = request.data.get('code')
-
     driver = Driver.objects.filter(phone=phone_number).first()
     if not driver:
         return Response({'error':'Driver is not found with this phone number.'}, status=status.HTTP_404_NOT_FOUND)
