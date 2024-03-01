@@ -87,9 +87,20 @@ def manage_driver(request):
                 vehicle_number = data.get('vehicle_number')
                 driver.vehicle_number = vehicle_number
 
+            '''
+            Reshuffle track url.
+            '''
+
             if 'track_url' in data:
                 track_url = data.get('track_url')
                 driver.track_url = track_url
+
+            '''
+            Reshuffle phone number.
+            '''
+            if 'phone' in data:
+                phone = data.get('phone')
+                driver.phone = phone
 
             driver.save()
 
