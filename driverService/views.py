@@ -929,6 +929,10 @@ def cancel_customer_ride(request):
             '''
             To cancel all rides with the given customer_ride_id.
             '''
+
+            for customer_ride_id in customer_ride_ids:
+                map_driver_customer_app_ride_status(customer_ride_id, 'Cancelled')
+
             for customer in customers:
                 customer.customer_ride_status = 'Cancelled'
                 customer.save()
