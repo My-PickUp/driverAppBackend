@@ -538,6 +538,23 @@ def map_driver_customer_app_ride_status(ride_id, new_status):
         }
         return result
 
+def update_driver_ride_status(ride_id, new_status):
+
+    check_valid_ride = Customer.objects.select_for_update().filter(
+        customer_ride_id=ride_id,
+        customer_ride_status=new_status
+    ).first()
+
+    if check_valid_ride:
+        check_valid_ride.customer_ride_status = 'Completed'
+        check_valid_ride.save()
+        return Response({"status": "success", "message": "Ride updates successfully"},
+                        status=status.HTTP_200_OK)
+
+    else:
+        return Response({"status": "error", "message": "Invalid customer_ride_status"},
+                        status=status.HTTP_400_BAD_REQUEST)
+
 def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, driver_phone, ride_status):
     reschedule_ride(customer_ride_id_info, customer_ride_datetime_str)
     update_customer_sharing_rides(customer_ride_id_info, driver_phone)
@@ -551,6 +568,7 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
  
 '''
 @api_view(['GET'])
+@transaction.atomic()
 def fetch_customer_rides(request, driver_id):
     current_date = datetime.today().date()
 
@@ -617,17 +635,25 @@ def fetch_customer_rides(request, driver_id):
             driver_phone = private_queryset[i]['driver_phone_info']
             ride_status = private_queryset[i]['customer_ride_status_info']
 
-            customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+            customer_ride_date = customer_ride_datetime.date()
 
-            future = executor.submit(
-                reschedule_and_update,
-                customer_ride_id_info,
-                customer_ride_datetime_str,
-                driver_phone,
-                ride_status
-            )
-            futures.append(future)
-            print(f"Private Ride - Task submitted - Iteration {i + 1}, Customer Ride ID: {customer_ride_id_info}")
+            if ride_status == 'Upcoming' and customer_ride_date < current_date:
+                update_driver_ride_status(customer_ride_id_info, ride_status)
+                map_driver_customer_app_ride_status(customer_ride_id_info, 'Completed')
+
+            else:
+                customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
+
+                future = executor.submit(
+                    reschedule_and_update,
+                    customer_ride_id_info,
+                    customer_ride_datetime_str,
+                    driver_phone,
+                    ride_status
+                )
+                futures.append(future)
+                print(f"Private Ride - Task submitted - Iteration {i + 1}, Customer Ride ID: {customer_ride_id_info}")
+
 
         '''
         Processing sharing rides.
