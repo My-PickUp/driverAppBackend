@@ -568,6 +568,7 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
  
 '''
 @api_view(['GET'])
+@transaction.atomic()
 def fetch_customer_rides(request, driver_id):
     current_date = datetime.today().date()
 
@@ -946,26 +947,18 @@ def end_ride(request):
 def cancel_customer_ride(request):
     serializer = CancelRideSerializer(data=request.data)
     if serializer.is_valid():
-        customer_ride_ids = serializer.validated_data.get('customer_ride_ids', [])
+        customer_ride_id = serializer.validated_data.get('customer_ride_id')
 
-        customers = Customer.objects.filter(customer_ride_id__in=customer_ride_ids)
+        try:
+            customer = Customer.objects.get(customer_ride_id=customer_ride_id)
+        except Customer.DoesNotExist:
+            return Response({'error': 'No customer found with the specified ride_id'}, status=status.HTTP_404_NOT_FOUND)
 
-        if customers.exists():
-            '''
-            To cancel all rides with the given customer_ride_id.
-            '''
+        map_driver_customer_app_ride_status(customer_ride_id, 'Cancelled')
+        customer.customer_ride_status = 'Cancelled'
+        customer.save()
 
-            for customer_ride_id in customer_ride_ids:
-                map_driver_customer_app_ride_status(customer_ride_id, 'Cancelled')
-
-            for customer in customers:
-                customer.customer_ride_status = 'Cancelled'
-                customer.save()
-
-            return Response({'status': 'Rides Cancelled'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'error': 'No customers found with the specified ride_id'},
-                            status=status.HTTP_404_NOT_FOUND)
+        return Response({'status': 'Ride Cancelled'}, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
