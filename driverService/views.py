@@ -568,7 +568,6 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
  
 '''
 @api_view(['GET'])
-@transaction.atomic()
 def fetch_customer_rides(request, driver_id):
     current_date = datetime.today().date()
 
@@ -635,25 +634,25 @@ def fetch_customer_rides(request, driver_id):
             driver_phone = private_queryset[i]['driver_phone_info']
             ride_status = private_queryset[i]['customer_ride_status_info']
 
-            customer_ride_date = customer_ride_datetime.date()
+            # customer_ride_date = customer_ride_datetime.date()
+            #
+            # if ride_status == 'Upcoming' and customer_ride_date < current_date:
+            #     update_driver_ride_status(customer_ride_id_info, ride_status)
+            #     map_driver_customer_app_ride_status(customer_ride_id_info, 'Completed')
+            #
+            # else:
 
-            if ride_status == 'Upcoming' and customer_ride_date < current_date:
-                update_driver_ride_status(customer_ride_id_info, ride_status)
-                map_driver_customer_app_ride_status(customer_ride_id_info, 'Completed')
+            customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
 
-            else:
-                customer_ride_datetime_str = DjangoJSONEncoder().default(customer_ride_datetime)
-
-                future = executor.submit(
-                    reschedule_and_update,
-                    customer_ride_id_info,
-                    customer_ride_datetime_str,
-                    driver_phone,
-                    ride_status
-                )
-                futures.append(future)
-                print(f"Private Ride - Task submitted - Iteration {i + 1}, Customer Ride ID: {customer_ride_id_info}")
-
+            future = executor.submit(
+                reschedule_and_update,
+                customer_ride_id_info,
+                customer_ride_datetime_str,
+                driver_phone,
+                ride_status
+            )
+            futures.append(future)
+            print(f"Private Ride - Task submitted - Iteration {i + 1}, Customer Ride ID: {customer_ride_id_info}")
 
         '''
         Processing sharing rides.
