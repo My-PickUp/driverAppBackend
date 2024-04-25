@@ -1096,3 +1096,32 @@ def trigger_ride_category(request):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({'error': 'Only POST requests are supported'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+@api_view(['GET'])
+def view_customer_cab_rides(request):
+    try:
+        with connections['default'].cursor() as cursor:
+            query = """
+
+            select us.id as customer_id,  us.phone_number as phone, ur.ride_date_time as ride_date_time, ur.id as customer_ride_id,ur.ride_status as customer_ride_status, ur.drop_address as drop_address, us.name as name, ur.pickup_address as pickup_address, ur.drop_latitude as customer_lat_drop, ur.pickup_latitude as customer_lat_pickup, ur.drop_longitude as customer_lon_drop, ur.pickup_longitude as customer_lon_pickup  from users_rides_detail ur
+    join "driverService_ridecategory" ds
+        on ur.id = ds.customer_cab_ride_id join public.users as us on us.id= ur.user_id where ds.cab_ride_category = 'cab_assigned'
+                                    and ur.ride_status='Upcoming' order by ur.ride_date_time asc;
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            '''
+            Convert rows to a list of dictionaries.
+            '''
+            result = [
+                dict(zip([column[0] for column in cursor.description], row))
+                for row in rows
+            ]
+            '''
+            Returns result as JSON
+            '''
+            return JsonResponse({"status": "success", "data": {"upcoming_cab_customer_ride_details": result}})
+
+    except OperationalError as e:
+        return JsonResponse({"status": "error", "message": str(e)})

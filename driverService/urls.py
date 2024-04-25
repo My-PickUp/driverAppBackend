@@ -19,5 +19,6 @@ urlpatterns = [
     path('fetchOngoingSharingCustomers/<int:driver_id>/', views.fetch_all_ongoing_sharing_customer_rides, name='fetch-all-ongoing-sharing-customer-rides'),
     path('fetchCustomerRides/<int:driver_id>/', views.fetch_customer_rides, name='fetch-customer-rides'),
     path('triggerRideCategory/', views.trigger_ride_category, name='trigger-ride-category'),
+    path('viewCustomerCabRides/', views.view_customer_cab_rides, name='view-customer-cab_rides'),
     path('awake/', views.awake, name='awake'),
 ]
