@@ -52,6 +52,14 @@ class Copassenger(models.Model):
     ride = models.ForeignKey(DriverRide, to_field='ride_id', on_delete=models.CASCADE)
 
 
+class RideCategory(models.Model):
+    customer_cab_ride_id = models.IntegerField(null=True, blank=True)
+    cab_ride_category = models.CharField(max_length=255)
+
+
+
+
+
 
 
 

@@ -33,6 +33,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.cache import cache
 from driverService.serializers import CustomerSerializer
+from .models import RideCategory
 
 ongoing_sharing_rides_list = []
 
@@ -1067,6 +1068,31 @@ def update_customer_driver(request, customer_ride_id):
                             status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['POST'])
+def trigger_ride_category(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            customer_cab_ride_id = data.get('customer_cab_ride_id')
+            if customer_cab_ride_id is None:
+                return Response({'error': 'customer_cab_ride_id is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+            '''
+            Check if the customer_cab_ride_id already exists
+            '''
+            existing_cab_ride_id = RideCategory.objects.filter(customer_cab_ride_id=customer_cab_ride_id).first()
+            if existing_cab_ride_id:
+                return Response({'error': 'Ride_id already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Create a new RideCategory instance
+            RideCategory.objects.create(
+                customer_cab_ride_id=customer_cab_ride_id,
+                cab_ride_category='cab_assigned'
+            )
 
+            return Response({'message': 'Ride category triggered successfully'}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response({'error': 'Only POST requests are supported'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
