@@ -309,7 +309,7 @@ def form_upload_response(request):
     for row in reader:
         ride_date_time = row.get('ride_date_time', '')
         driver_id = row.get('driver', '')
-        ride_type = row.get('ride_type', '')
+        ride_type = row.get('ride_type', '').strip().capitalize()
         customer_id = row.get('customer_id', '')
         drop_priority = int(row.get('drop_priority', '')) if row.get('drop_priority', '') else None
         co_passenger = row.get('co_passenger', '') or None
