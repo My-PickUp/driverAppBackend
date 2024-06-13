@@ -295,7 +295,7 @@ This API will fetch the data from upload file the one that will
 be pushed from admin dashboard and will ingest all the driver 
 related informations into the tables driverride, customer and co_passengers.
 '''
-
+@ratelimit(key='ip', rate='1/s', block=True)
 @api_view(['POST'])
 def form_upload_response(request):
     if 'csv_file' not in request.FILES:
