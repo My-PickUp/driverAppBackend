@@ -572,7 +572,7 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
 @api_view(['GET'])
 @transaction.atomic()
 def fetch_customer_rides(request, driver_id):
-    # current_date = datetime.today().date()
+
     current_date = datetime.now(pytz.timezone('Asia/Kolkata')).date()
 
     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
@@ -671,10 +671,14 @@ def fetch_customer_rides(request, driver_id):
                 driver_phone_1 = sharing_queryset[i]['driver_phone_info']
                 ride_status_1 = sharing_queryset[i]['customer_ride_status_info']
 
-                current_date = datetime.today().date()
+                current_date = datetime.now(pytz.timezone('Asia/Kolkata')).date()
                 customer_ride_date_1 = customer_ride_datetime_1.date()
 
                 if ride_status_1 == 'Upcoming' and customer_ride_date_1 < current_date:
+                    update_driver_ride_status(customer_ride_id_info_1, ride_status_1)
+                    map_driver_customer_app_ride_status(customer_ride_id_info_1, 'Completed')
+
+                if ride_status_1 == 'Ongoing' and customer_ride_date_1 < current_date:
                     update_driver_ride_status(customer_ride_id_info_1, ride_status_1)
                     map_driver_customer_app_ride_status(customer_ride_id_info_1, 'Completed')
 
@@ -698,6 +702,10 @@ def fetch_customer_rides(request, driver_id):
                 customer_ride_date_2 = customer_ride_datetime_2.date()
 
                 if ride_status_2 == 'Upcoming' and customer_ride_date_2 < current_date:
+                    update_driver_ride_status(customer_ride_id_info_2, ride_status_2)
+                    map_driver_customer_app_ride_status(customer_ride_id_info_2, 'Completed')
+
+                if ride_status_2 == 'Ongoing' and customer_ride_date_2 < current_date:
                     update_driver_ride_status(customer_ride_id_info_2, ride_status_2)
                     map_driver_customer_app_ride_status(customer_ride_id_info_2, 'Completed')
 
