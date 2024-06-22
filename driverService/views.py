@@ -1,6 +1,7 @@
 import csv
 import json
 import random
+import pytz
 from concurrent.futures import ThreadPoolExecutor
 from django.db.utils import IntegrityError
 from django.db import connection
@@ -571,7 +572,8 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
 @api_view(['GET'])
 @transaction.atomic()
 def fetch_customer_rides(request, driver_id):
-    current_date = datetime.today().date()
+    # current_date = datetime.today().date()
+    current_date = datetime.now(pytz.timezone('Asia/Kolkata')).date()
 
     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
@@ -996,7 +998,10 @@ def reschedule_customer_ride(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
+@transaction.atomic()
 def fetch_all_ongoing_private_customer_rides(request, driver_id):
+
+    current_date = now_ist = datetime.now(pytz.timezone('Asia/Kolkata')).date()
 
     ongoing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Ongoing',
@@ -1024,6 +1029,18 @@ def fetch_all_ongoing_private_customer_rides(request, driver_id):
     for i in range(len(ongoing_queryset)):
         pair = [ongoing_queryset[i]]
         pairs.append(pair)
+
+        customer_ride_id_info = ongoing_queryset[i]['customer_ride_id_info']
+        customer_ride_datetime = ongoing_queryset[i]['customer_ride_datetime']
+        driver_phone = ongoing_queryset[i]['driver_phone_info']
+        ride_status = ongoing_queryset[i]['customer_ride_status_info']
+
+        customer_ride_date = customer_ride_datetime.date()
+
+        if ride_status == 'Ongoing' and customer_ride_date < current_date:
+            update_driver_ride_status(customer_ride_id_info, ride_status)
+            map_driver_customer_app_ride_status(customer_ride_id_info, 'Completed')
+
 
     return Response(pairs, status=status.HTTP_200_OK)
 
