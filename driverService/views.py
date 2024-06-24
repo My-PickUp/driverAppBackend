@@ -573,7 +573,7 @@ def reschedule_and_update(customer_ride_id_info, customer_ride_datetime_str, dri
 @transaction.atomic()
 def fetch_customer_rides(request, driver_id):
 
-    current_date = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+    current_date = datetime.today().date()
 
     private_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Upcoming', driver_id=driver_id)
@@ -671,7 +671,7 @@ def fetch_customer_rides(request, driver_id):
                 driver_phone_1 = sharing_queryset[i]['driver_phone_info']
                 ride_status_1 = sharing_queryset[i]['customer_ride_status_info']
 
-                current_date = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+                current_date = datetime.today().date()
                 customer_ride_date_1 = customer_ride_datetime_1.date()
 
                 if ride_status_1 == 'Upcoming' and customer_ride_date_1 < current_date:
@@ -1009,7 +1009,7 @@ def reschedule_customer_ride(request):
 @transaction.atomic()
 def fetch_all_ongoing_private_customer_rides(request, driver_id):
 
-    current_date = now_ist = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+    current_date = datetime.today().date()
 
     ongoing_queryset = Customer.objects.select_related('driver', 'driver__driverride').filter(
         Q(drop_priority__isnull=True, driver__driverride__ride_type='Private', customer_ride_status='Ongoing',
