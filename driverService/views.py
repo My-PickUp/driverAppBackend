@@ -1,7 +1,6 @@
 import csv
 import json
 import random
-import pytz
 from concurrent.futures import ThreadPoolExecutor
 from django.db.utils import IntegrityError
 from django.db import connection
