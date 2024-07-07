@@ -299,7 +299,7 @@ related informations into the tables driverride, customer and co_passengers.
 @api_view(['POST'])
 def form_upload_response(request):
 
-    required_headers = {'driver', 'co_passenger', 'ride_type', 'drop_priority'}
+    # required_headers = {'driver', 'co_passenger', 'ride_type', 'drop_priority'}
 
     if 'csv_file' not in request.FILES:
         return Response({"error": "CSV file is missing"}, status=status.HTTP_400_BAD_REQUEST)
@@ -307,8 +307,8 @@ def form_upload_response(request):
     csv_file = request.FILES['csv_file'].read().decode('utf-8').splitlines()
     reader = csv.DictReader(csv_file)
 
-    if not required_headers.issubset(set(reader.fieldnames)):
-        return Response({"error": f"CSV headers must include {', '.join(required_headers)}"}, status=status.HTTP_400_BAD_REQUEST)
+    # if not required_headers.issubset(set(reader.fieldnames)):
+    #     return Response({"error": f"CSV headers must include {', '.join(required_headers)}"}, status=status.HTTP_400_BAD_REQUEST)
 
     ride_details = []
 
@@ -331,8 +331,8 @@ def form_upload_response(request):
         customer_lat_drop = row.get('customer_lat_drop', '')
         customer_lon_drop = row.get('customer_lon_drop', '')
 
-        if not driver_id or not ride_type or not drop_priority:
-            return Response({"error": f"Invalid data in row: {row}"}, status=status.HTTP_400_BAD_REQUEST)
+        # if not driver_id or not ride_type or not drop_priority:
+        #     return Response({"error": f"Invalid data in row: {row}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
         ride_details.append({
