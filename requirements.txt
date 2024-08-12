@@ -8,4 +8,5 @@ whitenoise==5.3.0
 django-cors-headers
 django_ratelimit
 requests==2.31.0
+python-dotenv
 
