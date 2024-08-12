@@ -9,4 +9,3 @@ django-cors-headers
 django_ratelimit
 requests==2.31.0
 
-
