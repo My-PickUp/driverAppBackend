@@ -1066,6 +1066,7 @@ def fetch_all_ongoing_private_customer_rides(request, driver_id):
 def update_customer_driver(request, customer_ride_id):
     try:
         customer = Customer.objects.get(customer_ride_id=customer_ride_id)
+        print(customer)
     except Customer.DoesNotExist:
         return Response({'error': 'Customer not found with the specified customer_ride_id'},
                         status=status.HTTP_404_NOT_FOUND)
@@ -1075,6 +1076,7 @@ def update_customer_driver(request, customer_ride_id):
         Including only the driver_id field for partial updates.
         '''
         serializer = CustomerSerializer(customer, data={'driver_id': request.data.get('driver_id')}, partial=True)
+        print(serializer)
         if serializer.is_valid():
             serializer.save()
 
@@ -1082,8 +1084,10 @@ def update_customer_driver(request, customer_ride_id):
             Update the related driver in Customer table.
             '''
             new_driver_id = request.data.get('driver_id')
+            print(new_driver_id)
             if new_driver_id is not None:
                 customer.driver_id = new_driver_id
+                print(customer.driver_id)
                 customer.save()
 
                 '''
