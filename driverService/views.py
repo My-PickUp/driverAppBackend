@@ -468,7 +468,7 @@ def form_upload_response(request):
                         customer.drop_priority = drop_priority
                         customer.save()
 
-                        if co_passenger:
+                        if co_passenger and ride:
                             co_passenger, created = Copassenger.objects.get_or_create(
                                 co_passenger=customer,
                                 ride=ride
